@@ -1,0 +1,3 @@
+rule_name,source_ip,destination_ip,port,protocol,action,description
+allow-ssh,10.0.0.1,10.0.1.1,22,tcp,allow,Allow SSH traffic from source to destination
+deny-http,10.0.0.2,10.0.1.2,80,tcp,deny,deny http traffic from source to destination
