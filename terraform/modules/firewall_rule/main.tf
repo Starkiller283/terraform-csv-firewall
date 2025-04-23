@@ -18,14 +18,22 @@ variable "rules" {
   }))
 }
 
-resource "panos_security_rule" "firewall_rule" {
-  rule_name           = "allow_ssh"
-  source_zone         = "trust"
-  destination_zone    = "untrust"
-  source_address      = ["10.0.0.1"]
-  destination_address = ["10.0.1.1"]
-  application         = ["ssh"]
-  service             = []
-  action              = "allow"
-  description         = "Allow SSH from trust to untrust"
+resource "panos_security_policy" "firewall_rule" {
+  vsys = "vsys1"
+
+  rule {
+    name                  = "allow-ssh"
+    source_zones          = ["trust"]
+    destination_zones     = ["untrust"]
+    source_addresses      = ["10.0.0.1"]
+    destination_addresses = ["10.0.1.1"]
+    applications          = ["ssh"]
+    services              = ["application-default"]
+    action                = "allow"
+    description           = "Allow SSH from trust to untrust"
+    source_users          = ["any"]
+    categories            = ["any"]
+  }
 }
+
+
