@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    panos = {
+      source = "PaloAltoNetworks/panos"
+    }
+  }
+}
+
 variable "rules" {
   type = list(object({
     rule_name       = string
