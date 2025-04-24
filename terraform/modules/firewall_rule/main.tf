@@ -21,19 +21,22 @@ variable "rules" {
 resource "panos_security_policy" "firewall_rule" {
   vsys = "vsys1"
 
-  rule {
-    name                  = "allow-ssh"
-    source_zones          = ["trust"]
-    destination_zones     = ["untrust"]
-    source_addresses      = ["10.0.0.1"]
-    destination_addresses = ["10.0.1.1"]
-    applications          = ["ssh"]
+  dynamic "rule" {
+  for_each = var.rules
+  content {
+    name                  = rule.value.rule_name
+    source_zones          = ["Trust"]
+    destination_zones     = ["Untrust"]
+    source_addresses      = [rule.value.source_ip]
+    destination_addresses = [rule.value.destination_ip]
+    applications          = [rule.value.protocol]
     services              = ["application-default"]
-    action                = "allow"
-    description           = "Allow SSH from trust to untrust"
+    action                = rule.value.action
+    description           = rule.value.description
     source_users          = ["any"]
     categories            = ["any"]
   }
+}
 }
 
 
