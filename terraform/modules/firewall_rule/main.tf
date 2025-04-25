@@ -25,8 +25,8 @@ resource "panos_security_policy" "firewall_rule" {
   for_each = var.rules
   content {
     name                  = rule.value.rule_name
-    source_zones          = ["Trust"]
-    destination_zones     = ["Untrust"]
+    source_zones          = ["trust"]
+    destination_zones     = ["untrust"]
     source_addresses      = [rule.value.source_ip]
     destination_addresses = [rule.value.destination_ip]
     applications          = [rule.value.protocol]
