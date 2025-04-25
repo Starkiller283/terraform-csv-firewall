@@ -3,20 +3,25 @@ name: Terraform CSV Firewall Deployment
 on:
   push:
     paths:
-      - 'rules.csv'          # Trigger ONLY when rules.csv changes
-      - 'terraform/**'       # Or when any Terraform files change
-  workflow_dispatch:         # Allow manual trigger from GitHub UI
+      - 'rules.csv'
+      - 'terraform/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: terraform
 
     steps:
-    - name: Checkout code
+    - name: Checkout repo
       uses: actions/checkout@v3
+
+    - name: Debug API access
+      run: |
+        echo "Testing curl to PAN-OS..."
+        curl -k "https://192.168.0.156/api/?type=version&key=${{ secrets.PANOS_API_KEY }}"
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -28,8 +33,5 @@ jobs:
 
     - name: Terraform Plan
       run: terraform plan -input=false
-
-    - name: Terraform Apply
-      run: terraform apply -auto-approve
       env:
         TF_VAR_panos_api_key: ${{ secrets.PANOS_API_KEY }}
