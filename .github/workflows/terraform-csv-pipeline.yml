@@ -30,6 +30,11 @@ jobs:
 
     - name: Terraform Init
       run: terraform init
+   
+    - name: Debug Secret Access
+      run: echo "PANOS key length: ${#TF_VAR_panos_api_key}"
+      env:
+        TF_VAR_panos_api_key: ${{ secrets.PANOS_API_KEY }}
 
     - name: Terraform Plan
       run: terraform plan -input=false
