@@ -5,7 +5,7 @@ import sys
 seen = set()
 duplicate_found = False
 
-with open("rules.csv") as csvfile:
+with open("../rules.csv") as csvfile:
     reader = csv.DictReader(csvfile)
     for i, row in enumerate(reader, start=2):  # start=2 to match CSV line numbers (header is line 1)
         key = (
