@@ -26,3 +26,8 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan -input=false
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        env:
+          TF_VAR_panos_api_key: ${{ secrets.PANOS_API_KEY }}
