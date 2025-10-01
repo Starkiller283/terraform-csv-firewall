@@ -10,7 +10,7 @@ variable "rules" {
     rule_name       = string
     source_ip       = string
     destination_ip  = string
-    port            = string
+    port            = number
     protocol        = string
     action          = string
     description     = string
@@ -27,7 +27,7 @@ resource "panos_security_policy" "firewall_rule" {
       source_addresses      = [rule.value.source_ip]
       destination_addresses = [rule.value.destination_ip]
       applications          = ["any"]
-      services              = ["service-" + rule.value.protocol + "-" + rule.value.port]
+      services              = ["service-" + rule.value.protocol + "-" + tostring(rule.value.port)]
       action                = rule.value.action
       description           = rule.value.description
       source_users          = ["any"]
