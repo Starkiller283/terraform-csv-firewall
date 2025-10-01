@@ -22,8 +22,8 @@ resource "panos_security_policy" "firewall_rule" {
     for_each = var.rules
     content {
       name                  = rule.value.rule_name
-      source_zones          = ["Internal"]
-      destination_zones     = ["External"]
+      source_zones          = ["tap"]
+      destination_zones     = ["tap"]
       source_addresses      = [rule.value.source_ip]
       destination_addresses = [rule.value.destination_ip]
       applications          = ["any"]
