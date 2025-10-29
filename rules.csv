@@ -10,3 +10,4 @@ add_rule_to_csv,any,8.8.8.8,53,udp,allow,allow dns google
 claude_test_001,10.0.0.1,8.8.8.8,80,tcp,allow,claude mcp test rule
 deny-test-validation,10.0.0.5,8.8.8.8,80,tcp,deny,test validation
 claude-test,10.0.0.1,10.0.0.2,8080,tcp,allow,Test rule for Claude
+test-web-access,192.168.1.100,10.0.2.50,443,tcp,allow,Test rule - Allow web server access from internal client
