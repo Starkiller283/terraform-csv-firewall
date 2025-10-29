@@ -8,8 +8,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 # ============= CONFIGURATION =============
-CSV_PATH = "./rules.csv"
-REPO_PATH = "./"  # Path to your local git repository
+BASE_DIR = "/home/nabib/terraform-csv-firewall"
+CSV_FILE = os.path.join(BASE_DIR, "rules.csv")
+REPO_PATH = BASE_DIR
 
 # Firewall connection - uses API key
 FIREWALL_IP = "192.168.0.200"
@@ -359,35 +360,45 @@ def show_pending_changes() -> str:
 @mcp.tool()
 def commit_and_push_changes(commit_message: str) -> str:
     """
-    Commit CSV changes and push to GitHub. This triggers your GitHub Actions pipeline.
+    Commit changes to rules.csv and push to GitHub (triggers CI/CD pipeline).
+    
+    Args:
+        commit_message: Description of the changes being committed
     """
     try:
+        # Initialize repo object
         repo = Repo(REPO_PATH)
         
-        # Check if there are changes
-        if not repo.is_dirty(untracked_files=True):
-            return "Nothing to commit - no changes detected"
+        # Check if there are changes to commit
+        if not repo.is_dirty() and not repo.untracked_files:
+            return "⚠️ No changes to commit. Working tree is clean."
         
-        # Add CSV file
-        repo.index.add([CSV_PATH])
+        # Add rules.csv to staging
+        repo.index.add(['rules.csv'])
         
-        # Commit
-        repo.index.commit(commit_message)
+        # Commit with the provided message
+        commit = repo.index.commit(commit_message)
         
-        # Push
+        # Push to remote
         origin = repo.remote(name='origin')
-        origin.push()
+        push_info = origin.push()
         
-        return f"""
-✅ Changes committed and pushed!
-📝 Commit message: "{commit_message}"
+        # Check if push was successful
+        if push_info and push_info[0].flags & 1024:  # ERROR flag
+            return f"❌ Push failed: {push_info[0].summary}"
+        
+        result = f"""✅ Changes committed and pushed!
+📝 Commit: {commit.hexsha[:7]} - {commit_message}
 
 🚀 GitHub Actions pipeline should now be running...
-   Check: https://github.com/YOUR-REPO/actions
+   Check: https://github.com/Starkiller283/terraform-csv-firewall/actions
 """
         
+        return result
+        
     except Exception as e:
-        return f"❌ Git error: {str(e)}"
+        return f"❌ Error: {type(e).__name__}: {str(e)}\n\nTry committing manually:\n  git add rules.csv\n  git commit -m \"{commit_message}\"\n  git push origin main"
+
 
 # ============= RUN SERVER =============
 
