@@ -10,3 +10,4 @@ add_rule_to_csv,any,8.8.8.8,53,udp,allow,allow dns google
 claude_test_001,10.0.0.1,8.8.8.8,80,tcp,allow,claude mcp test rule
 deny-test-validation,10.0.0.5,8.8.8.8,80,tcp,deny,test validation
 claude-test,10.0.0.1,10.0.0.2,8080,tcp,allow,Test rule for Claude
+allow-database-access,172.16.10.25,10.0.5.100,3306,tcp,allow,Allow MySQL database access from app server to database server
