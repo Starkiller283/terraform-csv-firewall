@@ -5,12 +5,17 @@ from git import Repo
 import requests
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+import sys
+from pathlib import Path
 
 
 # ============= CONFIGURATION =============
-BASE_DIR = "/home/nabib/terraform-csv-firewall"
-CSV_FILE = os.path.join(BASE_DIR, "rules.csv")
-REPO_PATH = BASE_DIR
+
+
+# Get the directory where this script is located
+SCRIPT_DIR = Path(__file__).parent.absolute()
+CSV_PATH = str(SCRIPT_DIR / "rules.csv")
+REPO_PATH = str(SCRIPT_DIR)  # Path to your local git repository
 
 # Firewall connection - uses API key
 FIREWALL_IP = "192.168.0.200"
@@ -404,4 +409,6 @@ def commit_and_push_changes(commit_message: str) -> str:
 
 if __name__ == "__main__":
     print("🚀 Starting Palo Alto Firewall MCP Server...")
+    print(f"📂 CSV Path: {CSV_PATH}")
+    print(f"📂 Repo Path: {REPO_PATH}")
     mcp.run(transport="stdio")
