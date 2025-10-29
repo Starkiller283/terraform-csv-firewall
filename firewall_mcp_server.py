@@ -7,6 +7,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import sys
 from pathlib import Path
+from palo_alto_validation import PaloAltoValidator
 
 
 # ============= CONFIGURATION =============
@@ -90,6 +91,27 @@ def add_rule_to_csv(rule_name: str, source_ip: str, destination_ip: str,
     This does NOT deploy yet - you need to commit and push to trigger GitHub Actions.
     """
     try:
+        
+        rule_data = {
+            'rule_name': rule_name,
+            'source_ip': source_ip,
+            'destination_ip': destination_ip,
+            'port': port,
+            'protocol': protocol,
+            'action': action,
+            'description': description
+        }
+        
+        is_valid, messages = PaloAltoValidator.validate_all(rule_data)
+        
+        if not is_valid:
+            error_message = "❌ **Validation Failed**\n\n" + "\n\n".join(messages)
+            return error_message
+        
+        # Show warnings if any (but continue)
+        warnings = [msg for msg in messages if msg.startswith("⚠️")]
+        warning_text = "\n\n".join(warnings) if warnings else ""
+        
         df = pd.read_csv(CSV_PATH)
         
         # Check for duplicate names
