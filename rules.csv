@@ -9,3 +9,4 @@ deny-http,10.0.0.2,10.0.1.2,80,web-browsing,deny,deny http traffic from source t
 add_rule_to_csv,any,8.8.8.8,53,udp,allow,allow dns google
 claude_test_001,10.0.0.1,8.8.8.8,80,tcp,allow,claude mcp test rule
 deny-test-validation,10.0.0.5,8.8.8.8,80,tcp,deny,test validation
+claude-test,10.0.0.1,10.0.0.2,8080,tcp,allow,Test rule for Claude
