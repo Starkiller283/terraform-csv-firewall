@@ -16,7 +16,7 @@ from palo_alto_validation import PaloAltoValidator
 # Get the directory where this script is located
 SCRIPT_DIR = Path(__file__).parent.absolute()
 CSV_PATH = str(SCRIPT_DIR / "rules.csv")
-REPO_PATH = str(SCRIPT_DIR)  # Path to your local git repository
+REPO_PATH = str(SCRIPT_DIR)  # Path to local git repository
 
 # Firewall connection - uses API key
 FIREWALL_IP = "192.168.0.200"
