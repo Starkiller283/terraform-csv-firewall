@@ -1,0 +1,22 @@
+# LangChain Firewall Manager Requirements
+
+# Core LangChain
+langchain>=0.1.0
+langchain-anthropic>=0.1.0  # For Claude
+# langchain-openai>=0.0.5  # Uncomment if you want to use OpenAI instead
+
+# Data processing
+pandas>=2.0.0
+
+# Git operations
+gitpython>=3.1.0
+
+# HTTP requests
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Pydantic for schemas
+pydantic>=2.0.0
+
+# Optional: For better terminal output
+rich>=13.0.0
