@@ -430,7 +430,7 @@ def commit_and_push_changes(commit_message: str) -> str:
 # ============= RUN SERVER =============
 
 if __name__ == "__main__":
-    print("🚀 Starting Palo Alto Firewall MCP Server...")
-    print(f"📂 CSV Path: {CSV_PATH}")
-    print(f"📂 Repo Path: {REPO_PATH}")
+    print("Starting Palo Alto Firewall MCP Server...")
+    print(f"CSV Path: {csv_path}")
+    print(f"Repo Path: {repo_path}")
     mcp.run(transport="stdio")
