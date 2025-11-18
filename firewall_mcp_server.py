@@ -40,14 +40,14 @@ def list_csv_rules() -> str:
     """
     try:
         if not os.path.exists(CSV_PATH):
-            return f"❌ CSV file not found: {CSV_PATH}"
+            return f" CSV file not found: {CSV_PATH}"
         
         df = pd.read_csv(CSV_PATH)
         
         if df.empty:
             return "CSV is empty - no rules defined"
         
-        result = f"📋 Rules in CSV ({len(df)} total):\n\n"
+        result = f" Rules in CSV ({len(df)} total):\n\n"
         for idx, row in df.iterrows():
             result += f"{idx + 1}. {row['rule_name']}: {row['source_ip']} → {row['destination_ip']}:{row['port']} ({row['action']})\n"
             result += f"   Protocol: {row['protocol']}, Description: {row['description']}\n\n"
@@ -55,7 +55,7 @@ def list_csv_rules() -> str:
         return result
         
     except Exception as e:
-        return f"❌ Error reading CSV: {str(e)}"
+        return f" Error reading CSV: {str(e)}"
 
 @mcp.tool()
 def search_csv_rule(search_term: str) -> str:
@@ -81,7 +81,7 @@ def search_csv_rule(search_term: str) -> str:
         return result
         
     except Exception as e:
-        return f"❌ Error searching: {str(e)}"
+        return f" Error searching: {str(e)}"
 
 @mcp.tool()
 def add_rule_to_csv(rule_name: str, source_ip: str, destination_ip: str, 
@@ -105,18 +105,15 @@ def add_rule_to_csv(rule_name: str, source_ip: str, destination_ip: str,
         is_valid, messages = PaloAltoValidator.validate_all(rule_data)
         
         if not is_valid:
-            error_message = "❌ **Validation Failed**\n\n" + "\n\n".join(messages)
+            error_message = " **Validation Failed**\n\n" + "\n\n".join(messages)
             return error_message
         
-        # Show warnings if any (but continue)
-        warnings = [msg for msg in messages if msg.startswith("⚠️")]
-        warning_text = "\n\n".join(warnings) if warnings else ""
         
         df = pd.read_csv(CSV_PATH)
         
         # Check for duplicate names
         if rule_name in df['rule_name'].values:
-            return f"❌ Rule '{rule_name}' already exists in CSV"
+            return f" Rule '{rule_name}' already exists in CSV"
         
         # Create new rule
         new_rule = pd.DataFrame([{
@@ -135,10 +132,10 @@ def add_rule_to_csv(rule_name: str, source_ip: str, destination_ip: str,
         # Save
         df.to_csv(CSV_PATH, index=False)
         
-        return f"✅ Rule '{rule_name}' added to CSV!\n\n⚠️ Remember: You need to commit and push to deploy this rule to the firewall."
+        return f" Rule '{rule_name}' added to CSV!\n\n Remember: You need to commit and push to deploy this rule to the firewall."
         
     except Exception as e:
-        return f"❌ Error adding rule: {str(e)}"
+        return f" Error adding rule: {str(e)}"
 
 @mcp.tool()
 def delete_rule_from_csv(rule_name: str) -> str:
@@ -149,7 +146,7 @@ def delete_rule_from_csv(rule_name: str) -> str:
         df = pd.read_csv(CSV_PATH)
         
         if rule_name not in df['rule_name'].values:
-            return f"❌ Rule '{rule_name}' not found in CSV"
+            return f" Rule '{rule_name}' not found in CSV"
         
         # Remove the rule
         df = df[df['rule_name'] != rule_name]
@@ -157,10 +154,10 @@ def delete_rule_from_csv(rule_name: str) -> str:
         # Save
         df.to_csv(CSV_PATH, index=False)
         
-        return f"✅ Rule '{rule_name}' deleted from CSV.\n\n⚠️ Remember to commit and push to remove from firewall."
+        return f" Rule '{rule_name}' deleted from CSV.\n\n⚠️ Remember to commit and push to remove from firewall."
         
     except Exception as e:
-        return f"❌ Error deleting rule: {str(e)}"
+        return f" Error deleting rule: {str(e)}"
 
 @mcp.tool()
 def edit_csv_rule(rule_name: str, source_ip: str = None, destination_ip: str = None,
@@ -173,7 +170,7 @@ def edit_csv_rule(rule_name: str, source_ip: str = None, destination_ip: str = N
         df = pd.read_csv(CSV_PATH)
         
         if rule_name not in df['rule_name'].values:
-            return f"❌ Rule '{rule_name}' not found in CSV"
+            return f" Rule '{rule_name}' not found in CSV"
         
         # Update the row
         idx = df[df['rule_name'] == rule_name].index[0]
@@ -201,10 +198,10 @@ def edit_csv_rule(rule_name: str, source_ip: str = None, destination_ip: str = N
         # Save
         df.to_csv(CSV_PATH, index=False)
         
-        return f"✅ Rule '{rule_name}' updated in CSV.\nChanges: {updates}\n\n⚠️ Commit and push to deploy changes."
+        return f" Rule '{rule_name}' updated in CSV.\nChanges: {updates}\n\n Commit and push to deploy changes."
         
     except Exception as e:
-        return f"❌ Error editing rule: {str(e)}"
+        return f" Error editing rule: {str(e)}"
 
 # ============= FIREWALL OPERATIONS =============
 
@@ -227,7 +224,7 @@ def list_firewall_rules() -> str:
         response = requests.get(url, params=params, verify=False, timeout=10)
         
         if response.status_code != 200:
-            return f"❌ API Error: {response.status_code} - {response.text[:300]}"
+            return f" API Error: {response.status_code} - {response.text[:300]}"
         
         # Parse XML response
         import xml.etree.ElementTree as ET
@@ -236,7 +233,7 @@ def list_firewall_rules() -> str:
         # Check response status
         status = root.get('status')
         if status != 'success':
-            return f"❌ API returned status: {status}\nResponse: {response.text[:300]}"
+            return f" API returned status: {status}\nResponse: {response.text[:300]}"
         
         # Find all rules
         rules = root.findall('.//entry')
@@ -244,7 +241,7 @@ def list_firewall_rules() -> str:
         if not rules:
             return "No rules found on firewall"
         
-        result = f"🔥 Rules on Firewall ({len(rules)} total):\n\n"
+        result = f" Rules on Firewall ({len(rules)} total):\n\n"
         
         for idx, rule in enumerate(rules, 1):
             name = rule.get('name', 'Unknown')
@@ -275,9 +272,9 @@ def list_firewall_rules() -> str:
         return result
         
     except requests.exceptions.ConnectionError:
-        return "❌ Cannot connect to firewall. Check IP and network connectivity."
+        return " Cannot connect to firewall. Check IP and network connectivity."
     except Exception as e:
-        return f"❌ Error: {type(e).__name__}: {str(e)}"
+        return f" Error: {type(e).__name__}: {str(e)}"
 
 
 @mcp.tool()
@@ -286,16 +283,16 @@ def get_firewall_rule_details(rule_name: str) -> str:
     Get detailed information about a specific rule on the firewall.
     """
     if not FIREWALL_CONNECTED:
-        return "❌ Not connected to firewall"
+        return " Not connected to firewall"
     
     try:
         rule = fw.find(rule_name, SecurityRule)
         
         if not rule:
-            return f"❌ Rule '{rule_name}' not found on firewall"
+            return f" Rule '{rule_name}' not found on firewall"
         
         details = f"""
-📋 Firewall Rule Details: {rule.name}
+ Firewall Rule Details: {rule.name}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 From Zone: {rule.fromzone}
 To Zone: {rule.tozone}
@@ -309,7 +306,7 @@ Description: {rule.description if rule.description else 'None'}
         return details
         
     except Exception as e:
-        return f"❌ Error: {str(e)}"
+        return f" Error: {str(e)}"
 
 @mcp.tool()
 def compare_csv_vs_firewall() -> str:
@@ -317,7 +314,7 @@ def compare_csv_vs_firewall() -> str:
     Compare rules in CSV vs rules on actual firewall to check sync status.
     """
     if not FIREWALL_CONNECTED:
-        return "❌ Not connected to firewall"
+        return " Not connected to firewall"
     
     try:
         # Get CSV rules
@@ -338,9 +335,9 @@ def compare_csv_vs_firewall() -> str:
         result = f"""
 📊 CSV vs Firewall Comparison
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Synced (in both): {len(in_both)} rules
-📝 Pending deployment (CSV only): {len(only_in_csv)} rules
-🔥 On firewall only (not in code): {len(only_on_firewall)} rules
+ Synced (in both): {len(in_both)} rules
+ Pending deployment (CSV only): {len(only_in_csv)} rules
+ On firewall only (not in code): {len(only_on_firewall)} rules
 """
         
         if only_in_csv:
@@ -349,14 +346,14 @@ def compare_csv_vs_firewall() -> str:
                 result += f"  • {r}\n"
         
         if only_on_firewall:
-            result += f"\n\n🔥 Rules on firewall but NOT in CSV:\n"
+            result += f"\n\n Rules on firewall but NOT in CSV:\n"
             for r in only_on_firewall:
                 result += f"  • {r}\n"
         
         return result
         
     except Exception as e:
-        return f"❌ Error comparing: {str(e)}"
+        return f" Error comparing: {str(e)}"
 
 # ============= GIT OPERATIONS =============
 
@@ -369,7 +366,7 @@ def show_pending_changes() -> str:
         repo = Repo(REPO_PATH)
         
         if not repo.is_dirty(untracked_files=True):
-            return "✅ No pending changes - CSV is clean"
+            return " No pending changes - CSV is clean"
         
         # Check if CSV was modified
         changed_files = [item.a_path for item in repo.index.diff(None)]
@@ -379,10 +376,10 @@ def show_pending_changes() -> str:
         
         diff = repo.git.diff(CSV_PATH)
         
-        return f"📝 Pending changes to rules.csv:\n\n{diff}\n\n⚠️ Remember to commit and push to deploy!"
+        return f" Pending changes to rules.csv:\n\n{diff}\n\n Remember to commit and push to deploy!"
         
     except Exception as e:
-        return f"❌ Error: {str(e)}"
+        return f" Error: {str(e)}"
 
 @mcp.tool()
 def commit_and_push_changes(commit_message: str) -> str:
@@ -398,7 +395,7 @@ def commit_and_push_changes(commit_message: str) -> str:
         
         # Check if there are changes to commit
         if not repo.is_dirty() and not repo.untracked_files:
-            return "⚠️ No changes to commit. Working tree is clean."
+            return " No changes to commit. Working tree is clean."
         
         # Add rules.csv to staging
         repo.index.add(['rules.csv'])
@@ -412,9 +409,9 @@ def commit_and_push_changes(commit_message: str) -> str:
         
         # Check if push was successful
         if push_info and push_info[0].flags & 1024:  # ERROR flag
-            return f"❌ Push failed: {push_info[0].summary}"
+            return f" Push failed: {push_info[0].summary}"
         
-        result = f"""✅ Changes committed and pushed!
+        result = f""" Changes committed and pushed!
 📝 Commit: {commit.hexsha[:7]} - {commit_message}
 
 🚀 GitHub Actions pipeline should now be running...
@@ -424,13 +421,22 @@ def commit_and_push_changes(commit_message: str) -> str:
         return result
         
     except Exception as e:
-        return f"❌ Error: {type(e).__name__}: {str(e)}\n\nTry committing manually:\n  git add rules.csv\n  git commit -m \"{commit_message}\"\n  git push origin main"
+        return f" Error: {type(e).__name__}: {str(e)}\n\nTry committing manually:\n  git add rules.csv\n  git commit -m \"{commit_message}\"\n  git push origin main"
 
 
 # ============= RUN SERVER =============
 
 if __name__ == "__main__":
-    print("Starting Palo Alto Firewall MCP Server...")
-    print(f"CSV Path: {csv_path}")
-    print(f"Repo Path: {repo_path}")
-    mcp.run(transport="stdio")
+    import sys
+    
+    print(" Starting Palo Alto Firewall MCP Server...") 
+    print(f" CSV Path: {CSV_PATH}")
+    print(f" Repo Path: {REPO_PATH}")
+    
+    # Check if running in dev mode
+    if len(sys.argv) > 1 and sys.argv[1] == "dev":
+        print("\n Starting web inspector...")
+        mcp.run(transport="sse")
+    else:
+        # For Claude Desktop (STDIO mode)
+        mcp.run(transport="stdio")
