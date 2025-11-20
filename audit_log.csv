@@ -1,2 +1,3 @@
 timestamp,username,action,rule_name
 2025-11-20T14:21:48.037372,demo_user,ADD,rule_4
+2025-11-20T16:45:35.530691,demo_user,REORDER,rule_4

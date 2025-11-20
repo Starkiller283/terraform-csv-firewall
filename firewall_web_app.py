@@ -21,6 +21,8 @@ from langchain_core.tools import Tool
 import requests
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from palo_alto_validation import PaloAltoValidator
+
 
 # ============= CONFIGURATION =============
 SCRIPT_DIR = Path(__file__).parent.absolute()
@@ -57,16 +59,13 @@ def list_csv_rules() -> str:
         return f"❌ Error reading CSV: {str(e)}"
 
 
-def add_rule_to_csv(rule_name: str, source_ip: str, destination_ip: str, 
-                    port: str, protocol: str, action: str, description: str) -> str:
-    """Add a new firewall rule to CSV"""
+def add_rule_to_csv(rule_name: str, source_ip: str, destination_ip: str,
+                    port: str, protocol: str, action: str,
+                    description: str) -> str:
+    """Add a new rule to CSV with validation"""
     try:
-        df = pd.read_csv(CSV_PATH)
-        
-        if rule_name in df['rule_name'].values:
-            return f"❌ Rule '{rule_name}' already exists in CSV"
-        
-        new_rule = pd.DataFrame([{
+        # Validate rule data first
+        rule_data = {
             'rule_name': rule_name,
             'source_ip': source_ip,
             'destination_ip': destination_ip,
@@ -74,17 +73,37 @@ def add_rule_to_csv(rule_name: str, source_ip: str, destination_ip: str,
             'protocol': protocol,
             'action': action,
             'description': description
-        }])
+        }
         
+        # Run validation
+        is_valid, messages = PaloAltoValidator.validate_all(rule_data)
+        
+        if not is_valid:
+            # Return validation errors
+            error_msg = "❌ Validation failed:\n\n" + "\n\n".join(messages)
+            return error_msg
+        
+        # Check for duplicate rule name
+        df = pd.read_csv(CSV_PATH)
+        if rule_name in df['rule_name'].values:
+            return f"❌ Rule '{rule_name}' already exists in CSV"
+        
+        # Add the rule
+        new_rule = pd.DataFrame([rule_data])
         df = pd.concat([df, new_rule], ignore_index=True)
         df.to_csv(CSV_PATH, index=False)
         
-        # Log the change
         log_change(st.session_state.get('username', 'unknown'), 'ADD', rule_name)
         
-        return f"✅ Rule '{rule_name}' added to CSV!"
+        # Build success message with any warnings
+        success_msg = f"✅ Rule '{rule_name}' added successfully!"
+        if messages:
+            success_msg += "\n\n⚠️ Warnings:\n" + "\n".join(messages)
+        
+        return success_msg
     except Exception as e:
         return f"❌ Error adding rule: {str(e)}"
+
 
 
 def delete_rule_from_csv(rule_name: str) -> str:
@@ -187,41 +206,60 @@ def log_change(username: str, action: str, rule_name: str):
 def edit_rule_in_csv(rule_name: str, source_ip: str = None, destination_ip: str = None,
                      port: str = None, protocol: str = None, action: str = None,
                      description: str = None) -> str:
-    """Edit an existing rule in CSV"""
+    """Edit an existing rule in CSV with validation"""
     try:
         df = pd.read_csv(CSV_PATH)
         if rule_name not in df['rule_name'].values:
-            return f" Rule '{rule_name}' not found in CSV"
+            return f"❌ Rule '{rule_name}' not found in CSV"
         
-        # Update the row
-        idx = df[df['rule_name'] == rule_name].index[0]
+        # Build dict of fields to validate
+        validation_data = {}
         updates = {}
         
         if source_ip:
-            df.at[idx, 'source_ip'] = source_ip
+            validation_data['source_ip'] = source_ip
             updates['source_ip'] = source_ip
         if destination_ip:
-            df.at[idx, 'destination_ip'] = destination_ip
+            validation_data['destination_ip'] = destination_ip
             updates['destination_ip'] = destination_ip
         if port:
-            df.at[idx, 'port'] = port
+            validation_data['port'] = port
             updates['port'] = port
         if protocol:
-            df.at[idx, 'protocol'] = protocol
+            validation_data['protocol'] = protocol
             updates['protocol'] = protocol
         if action:
-            df.at[idx, 'action'] = action
+            validation_data['action'] = action
             updates['action'] = action
         if description:
-            df.at[idx, 'description'] = description
+            validation_data['description'] = description
             updates['description'] = description
+        
+        # Validate only the fields being changed
+        if validation_data:
+            is_valid, messages = PaloAltoValidator.validate_all(validation_data)
+            
+            if not is_valid:
+                error_msg = "❌ Validation failed:\n\n" + "\n\n".join(messages)
+                return error_msg
+        
+        # Update the row
+        idx = df[df['rule_name'] == rule_name].index[0]
+        for field, value in updates.items():
+            df.at[idx, field] = value
         
         df.to_csv(CSV_PATH, index=False)
         log_change(st.session_state.get('username', 'unknown'), 'EDIT', rule_name)
         
-        return f"✅ Rule '{rule_name}' updated.\nChanges: {updates}"
+        # Build success message
+        success_msg = f"✅ Rule '{rule_name}' updated.\nChanges: {updates}"
+        if validation_data and messages:
+            success_msg += "\n\n⚠️ Warnings:\n" + "\n".join(messages)
+        
+        return success_msg
     except Exception as e:
         return f"❌ Error editing rule: {str(e)}"
+
 
 
 def reorder_rule(rule_name: str, new_position: int) -> str:
@@ -299,6 +337,35 @@ Check: https://github.com/YOUR_REPO/actions
         return f"❌ Error: {str(e)}"
 
 
+def validate_rule_syntax(rule_name: str = None, source_ip: str = None, 
+                        destination_ip: str = None, port: str = None,
+                        protocol: str = None, action: str = None) -> str:
+    """Validate rule parameters without saving"""
+    rule_data = {}
+    if rule_name:
+        rule_data['rule_name'] = rule_name
+    if source_ip:
+        rule_data['source_ip'] = source_ip
+    if destination_ip:
+        rule_data['destination_ip'] = destination_ip
+    if port:
+        rule_data['port'] = port
+    if protocol:
+        rule_data['protocol'] = protocol
+    if action:
+        rule_data['action'] = action
+    
+    is_valid, messages = PaloAltoValidator.validate_all(rule_data)
+    
+    if is_valid and not messages:
+        return "✅ All parameters are valid!"
+    elif is_valid and messages:
+        return "✅ Valid with warnings:\n\n" + "\n\n".join(messages)
+    else:
+        return "❌ Validation errors:\n\n" + "\n\n".join(messages)
+    
+
+
 # ============= LANGCHAIN TOOLS =============
 
 class AddRuleInput(BaseModel):
@@ -340,11 +407,16 @@ def list_firewall_rules_wrapper(*args, **kwargs):
     """Wrapper to handle any extra arguments from LangChain"""
     return list_firewall_rules()
 
-# Update tool definition
 list_firewall_tool = Tool(
     name="list_firewall_rules",
     func=list_firewall_rules_wrapper,
     description="Show rules on the actual firewall"
+)
+
+validate_tool = Tool(
+    name="validate_rule_syntax",
+    func=validate_rule_syntax,
+    description="Validate firewall rule parameters before adding/editing"
 )
 
 class EditRuleInput(BaseModel):
@@ -394,7 +466,8 @@ show_changes_tool = Tool(
 
 ALL_TOOLS = [
     list_csv_tool, 
-    add_rule_tool, 
+    add_rule_tool,
+    validate_tool, 
     edit_rule_tool,
     delete_rule_tool, 
     reorder_rule_tool,
