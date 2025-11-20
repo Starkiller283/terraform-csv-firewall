@@ -9,6 +9,7 @@ Access at: http://localhost:8501
 import streamlit as st
 import pandas as pd
 import os
+from git import Repo
 from pathlib import Path
 from datetime import datetime
 from langchain_anthropic import ChatAnthropic
@@ -183,6 +184,120 @@ def log_change(username: str, action: str, rule_name: str):
     
     df.to_csv(log_file, index=False)
 
+def edit_rule_in_csv(rule_name: str, source_ip: str = None, destination_ip: str = None,
+                     port: str = None, protocol: str = None, action: str = None,
+                     description: str = None) -> str:
+    """Edit an existing rule in CSV"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if rule_name not in df['rule_name'].values:
+            return f" Rule '{rule_name}' not found in CSV"
+        
+        # Update the row
+        idx = df[df['rule_name'] == rule_name].index[0]
+        updates = {}
+        
+        if source_ip:
+            df.at[idx, 'source_ip'] = source_ip
+            updates['source_ip'] = source_ip
+        if destination_ip:
+            df.at[idx, 'destination_ip'] = destination_ip
+            updates['destination_ip'] = destination_ip
+        if port:
+            df.at[idx, 'port'] = port
+            updates['port'] = port
+        if protocol:
+            df.at[idx, 'protocol'] = protocol
+            updates['protocol'] = protocol
+        if action:
+            df.at[idx, 'action'] = action
+            updates['action'] = action
+        if description:
+            df.at[idx, 'description'] = description
+            updates['description'] = description
+        
+        df.to_csv(CSV_PATH, index=False)
+        log_change(st.session_state.get('username', 'unknown'), 'EDIT', rule_name)
+        
+        return f"✅ Rule '{rule_name}' updated.\nChanges: {updates}"
+    except Exception as e:
+        return f"❌ Error editing rule: {str(e)}"
+
+
+def reorder_rule(rule_name: str, new_position: int) -> str:
+    """Move a rule to a different position (1-based index)"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if rule_name not in df['rule_name'].values:
+            return f"❌ Rule '{rule_name}' not found"
+        
+        # Get current position
+        current_idx = df[df['rule_name'] == rule_name].index[0]
+        
+        # Convert to 0-based and validate
+        new_idx = new_position - 1
+        if new_idx < 0 or new_idx >= len(df):
+            return f"❌ Position {new_position} is out of range (1-{len(df)})"
+        
+        # Reorder by moving the row
+        rule_row = df.iloc[current_idx:current_idx+1]
+        df = df.drop(current_idx).reset_index(drop=True)
+        df = pd.concat([df.iloc[:new_idx], rule_row, df.iloc[new_idx:]]).reset_index(drop=True)
+        
+        df.to_csv(CSV_PATH, index=False)
+        log_change(st.session_state.get('username', 'unknown'), 'REORDER', rule_name)
+        
+        return f"✅ Rule '{rule_name}' moved to position {new_position}"
+    except Exception as e:
+        return f"❌ Error reordering: {str(e)}"
+    
+
+def show_pending_changes() -> str:
+    """Show uncommitted changes to CSV"""
+    try:
+        repo = Repo(SCRIPT_DIR)
+        if not repo.is_dirty(untracked_files=True):
+            return "✅ No pending changes - CSV is clean"
+        
+        changed_files = [item.a_path for item in repo.index.diff(None)]
+        if 'rules.csv' not in changed_files:
+            return "No changes to rules.csv"
+        
+        diff = repo.git.diff(CSV_PATH)
+        return f"📝 Pending changes:\n\n{diff}\n\n⚠️ Commit and push to deploy!"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def commit_and_push_changes(commit_message: str) -> str:
+    """Commit CSV changes and push to GitHub"""
+    try:
+        repo = Repo(SCRIPT_DIR)
+        
+        if not repo.is_dirty() and not repo.untracked_files:
+            return "✅ No changes to commit"
+        
+        # Stage and commit
+        repo.index.add(['rules.csv'])
+        commit = repo.index.commit(commit_message)
+        
+        # Push
+        origin = repo.remote(name='origin')
+        push_info = origin.push()
+        
+        if push_info and push_info[0].flags & 1024:
+            return f"❌ Push failed: {push_info[0].summary}"
+        
+        result = f"""✅ Changes deployed!
+        
+📝 Commit: {commit.hexsha[:7]} - {commit_message}
+🚀 GitHub Actions running...
+Check: https://github.com/YOUR_REPO/actions
+"""
+        log_change(st.session_state.get('username', 'unknown'), 'COMMIT', commit_message)
+        return result
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
 
 # ============= LANGCHAIN TOOLS =============
 
@@ -232,7 +347,62 @@ list_firewall_tool = Tool(
     description="Show rules on the actual firewall"
 )
 
-ALL_TOOLS = [list_csv_tool, add_rule_tool, delete_rule_tool, list_firewall_tool]
+class EditRuleInput(BaseModel):
+    """Input schema for editing a rule"""
+    rule_name: str = Field(description="Name of rule to edit")
+    source_ip: str = Field(default=None, description="New source IP")
+    destination_ip: str = Field(default=None, description="New destination IP")
+    port: str = Field(default=None, description="New port")
+    protocol: str = Field(default=None, description="New protocol")
+    action: str = Field(default=None, description="New action")
+    description: str = Field(default=None, description="New description")
+
+edit_rule_tool = StructuredTool(
+    name="edit_rule_in_csv",
+    func=edit_rule_in_csv,
+    description="Edit an existing firewall rule. Only provide fields to change.",
+    args_schema=EditRuleInput
+)
+
+class ReorderRuleInput(BaseModel):
+    """Input schema for reordering"""
+    rule_name: str = Field(description="Name of rule to move")
+    new_position: int = Field(description="New position (1-based)")
+
+reorder_rule_tool = StructuredTool(
+    name="reorder_rule",
+    func=reorder_rule,
+    description="Change the order of a firewall rule",
+    args_schema=ReorderRuleInput
+)
+
+commit_tool = StructuredTool(
+    name="commit_and_push",
+    func=commit_and_push_changes,
+    description="Commit CSV changes and push to GitHub to deploy",
+    args_schema=type('CommitInput', (BaseModel,), {
+        '__annotations__': {'commit_message': str},
+        'commit_message': Field(description="Commit message describing changes")
+    })
+)
+
+show_changes_tool = Tool(
+    name="show_pending_changes",
+    func=lambda *args, **kwargs: show_pending_changes(),
+    description="Show uncommitted changes to rules CSV"
+)
+
+ALL_TOOLS = [
+    list_csv_tool, 
+    add_rule_tool, 
+    edit_rule_tool,
+    delete_rule_tool, 
+    reorder_rule_tool,
+    list_firewall_tool,
+    show_changes_tool,
+    commit_tool
+]
+
 
 
 # ============= AGENT CREATION =============
