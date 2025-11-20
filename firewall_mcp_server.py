@@ -154,7 +154,7 @@ def delete_rule_from_csv(rule_name: str) -> str:
         # Save
         df.to_csv(CSV_PATH, index=False)
         
-        return f" Rule '{rule_name}' deleted from CSV.\n\n⚠️ Remember to commit and push to remove from firewall."
+        return f" Rule '{rule_name}' deleted from CSV.\n\n Remember to commit and push to remove from firewall."
         
     except Exception as e:
         return f" Error deleting rule: {str(e)}"
