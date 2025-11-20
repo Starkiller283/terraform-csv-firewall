@@ -5,7 +5,8 @@ Conversational agent for managing firewall rules via LangChain
 
 from langchain.tools import Tool, StructuredTool
 from langchain_anthropic import ChatAnthropic
-from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import create_react_agent, AgentExecutor
+from langchain import hub
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from pydantic import BaseModel, Field
 import pandas as pd
@@ -440,16 +441,16 @@ ALL_TOOLS = [
 def create_firewall_agent():
     """Create and return the LangChain agent executor"""
     
-    # Initialize Claude (you can also use ChatOpenAI if you prefer)
+    # Initialize Claude
     llm = ChatAnthropic(
         model="claude-3-5-sonnet-20241022",
         temperature=0,
-        # api_key="your-api-key-here"  # or set ANTHROPIC_API_KEY env var
     )
     
-    # Create the prompt
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are a helpful Palo Alto firewall management assistant. You help users manage their firewall rules through a GitOps workflow.
+    # Create prompt for LangChain 1.0.7
+    from langchain_core.prompts import PromptTemplate
+    
+    prompt = PromptTemplate.from_template("""You are a helpful Palo Alto firewall management assistant. You help users manage their firewall rules through a GitOps workflow.
 
 Key things to remember:
 1. Rules added/edited/deleted in CSV are NOT immediately deployed - users must commit and push
@@ -460,13 +461,26 @@ Key things to remember:
 6. Actions are either: allow or deny
 7. IP addresses can be single IPs (10.0.0.1) or CIDR ranges (192.168.1.0/24)
 
-Be conversational and helpful!"""),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
+Be conversational and helpful!
+
+You have access to the following tools:
+{tools}
+
+Use the following format:
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [{tool_names}]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+Question: {input}
+{agent_scratchpad}""")
     
     # Create the agent
-    agent = create_tool_calling_agent(llm, ALL_TOOLS, prompt)
+    agent = create_react_agent(llm, ALL_TOOLS, prompt)
     
     # Create the executor
     agent_executor = AgentExecutor(

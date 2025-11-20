@@ -12,18 +12,11 @@ import os
 from pathlib import Path
 from datetime import datetime
 from langchain_anthropic import ChatAnthropic
-try:
-    from langchain.agents import AgentExecutor, create_tool_calling_agent
-except ImportError:
-    # For newer versions of langchain
-    try:
-        from langchain_core.agents import AgentExecutor
-        from langchain.agents import create_tool_calling_agent
-    except ImportError:
-        from langchain.agents import AgentExecutor, create_structured_chat_agent as create_tool_calling_agent
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.tools import Tool, StructuredTool
+from langchain_core.tools import StructuredTool
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 from pydantic import BaseModel, Field
+from langchain_core.tools import Tool
 import requests
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -31,7 +24,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ============= CONFIGURATION =============
 SCRIPT_DIR = Path(__file__).parent.absolute()
 CSV_PATH = str(SCRIPT_DIR / "rules.csv")
-FIREWALL_IP = "192.168.0.200"
+FIREWALL_IP = "192.168.0.18"
 API_KEY = "LUFRPT1wOU12bXpFZG9YZ2FBV1VRWFpWRU11OEltYzQ9ZytqWjRUUSt4bnhsbVY2VEtGbTIvSTV0QnVEKzErdGJsV3JscEcxOXk4NUhzRzFTcUZlcHVYTjNHSm5zWnBnMw=="
 
 # Page config
@@ -47,7 +40,7 @@ def list_csv_rules() -> str:
     """Show all firewall rules in CSV"""
     try:
         if not os.path.exists(CSV_PATH):
-            return f"❌ CSV file not found: {CSV_PATH}"
+            return f" CSV file not found: {CSV_PATH}"
         
         df = pd.read_csv(CSV_PATH)
         if df.empty:
@@ -205,9 +198,13 @@ class AddRuleInput(BaseModel):
 
 
 # Create tools
+def list_csv_rules_wrapper(*args, **kwargs):
+    """Wrapper to handle any extra arguments from LangChain"""
+    return list_csv_rules()
+
 list_csv_tool = Tool(
     name="list_csv_rules",
-    func=list_csv_rules,
+    func=list_csv_rules_wrapper,
     description="Show all firewall rules in the CSV file"
 )
 
@@ -224,9 +221,14 @@ delete_rule_tool = Tool.from_function(
     description="Delete a firewall rule from CSV"
 )
 
+def list_firewall_rules_wrapper(*args, **kwargs):
+    """Wrapper to handle any extra arguments from LangChain"""
+    return list_firewall_rules()
+
+# Update tool definition
 list_firewall_tool = Tool(
     name="list_firewall_rules",
-    func=list_firewall_rules,
+    func=list_firewall_rules_wrapper,
     description="Show rules on the actual firewall"
 )
 
@@ -239,19 +241,14 @@ ALL_TOOLS = [list_csv_tool, add_rule_tool, delete_rule_tool, list_firewall_tool]
 def create_agent():
     """Create the LangChain agent (cached)"""
     llm = ChatAnthropic(
-        model="claude-3-5-sonnet-20241022",
+        model="claude-sonnet-4-5-20250929",
         temperature=0
     )
     
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are a helpful Palo Alto firewall management assistant. 
-        Help users manage their firewall rules. Be concise and clear."""),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
+    # Bind tools to the model (LangChain 1.0+ way)
+    llm_with_tools = llm.bind_tools(ALL_TOOLS)
     
-    agent = create_tool_calling_agent(llm, ALL_TOOLS, prompt)
-    return AgentExecutor(agent=agent, tools=ALL_TOOLS, verbose=False)
+    return llm_with_tools
 
 
 # ============= STREAMLIT UI =============
@@ -326,84 +323,56 @@ def main():
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 try:
-                    agent = create_agent()
-                    response = agent.invoke({"input": prompt})
-                    answer = response['output']
+                    llm_with_tools = create_agent()
+                    
+                    # Create system message
+                    system_msg = """You are a helpful Palo Alto firewall management assistant. 
+                    Help users manage their firewall rules. Be concise and clear.
+                    You have access to tools to manage firewall rules."""
+                    
+                    messages = [
+                        {"role": "system", "content": system_msg},
+                        {"role": "user", "content": prompt}
+                    ]
+                    
+                    # Invoke with tool calling
+                    response = llm_with_tools.invoke(messages)
+                    
+                    # Check if tools were called
+                    if hasattr(response, 'tool_calls') and response.tool_calls:
+                        # Execute tool calls
+                        tool_outputs = []
+                        for tool_call in response.tool_calls:
+                            tool_name = tool_call['name']
+                            tool_args = tool_call['args']
+                            
+                            # Find and execute the tool
+                            for tool in ALL_TOOLS:
+                                if tool.name == tool_name:
+                                    try:
+                                        result = tool.func(**tool_args) if hasattr(tool_args, '__iter__') and not isinstance(tool_args, str) else tool.func(tool_args)
+                                        tool_outputs.append(result)
+                                    except Exception as e:
+                                        tool_outputs.append(f"Error: {str(e)}")
+                                    break
+                        
+                        # Show tool results
+                        answer = "\n\n".join(tool_outputs) if tool_outputs else response.content
+                    else:
+                        answer = response.content
+                    
                     st.markdown(answer)
                     st.session_state.messages.append({"role": "assistant", "content": answer})
                 except Exception as e:
                     error_msg = f"❌ Error: {str(e)}"
                     st.error(error_msg)
                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
-    
-    # Tabs for additional features
-    st.markdown("---")
-    tab1, tab2, tab3 = st.tabs(["📋 Rules Table", "📝 Add Rule", "📊 Audit Log"])
-    
-    with tab1:
-        st.subheader("Current Rules in CSV")
-        try:
-            df = pd.read_csv(CSV_PATH)
-            st.dataframe(df, use_container_width=True)
-            
-            # Download button
-            csv_data = df.to_csv(index=False)
-            st.download_button(
-                label="📥 Download CSV",
-                data=csv_data,
-                file_name="firewall_rules.csv",
-                mime="text/csv"
-            )
-        except Exception as e:
-            st.error(f"Error loading CSV: {e}")
-    
-    with tab2:
-        st.subheader("Add New Rule (Manual)")
-        with st.form("add_rule_form"):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                rule_name = st.text_input("Rule Name*")
-                source_ip = st.text_input("Source IP*")
-                destination_ip = st.text_input("Destination IP*")
-            
-            with col2:
-                port = st.text_input("Port*")
-                protocol = st.selectbox("Protocol*", ["tcp", "udp", "icmp"])
-                action = st.selectbox("Action*", ["allow", "deny"])
-            
-            description = st.text_area("Description*")
-            
-            submitted = st.form_submit_button("➕ Add Rule")
-            
-            if submitted:
-                if all([rule_name, source_ip, destination_ip, port, description]):
-                    result = add_rule_to_csv(
-                        rule_name, source_ip, destination_ip,
-                        port, protocol, action, description
-                    )
-                    if "✅" in result:
-                        st.success(result)
-                        st.rerun()
-                    else:
-                        st.error(result)
-                else:
-                    st.warning("Please fill in all fields")
-    
-    with tab3:
-        st.subheader("Audit Log")
-        log_file = SCRIPT_DIR / "audit_log.csv"
-        if log_file.exists():
-            log_df = pd.read_csv(log_file)
-            st.dataframe(log_df.sort_values('timestamp', ascending=False), use_container_width=True)
-        else:
-            st.info("No audit log yet")
 
 
 if __name__ == "__main__":
     # Check for API key
     if not os.environ.get('ANTHROPIC_API_KEY'):
-        st.error("⚠️ ANTHROPIC_API_KEY not set!")
+        st.error(" ANTHROPIC_API_KEY not set!")
         st.info("Set it with: export ANTHROPIC_API_KEY='your-key-here'")
         st.stop()
     
