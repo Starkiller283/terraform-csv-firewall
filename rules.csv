@@ -1,6 +1,5 @@
 rule_name,source_ip,destination_ip,port,protocol,action,description
 allow-ssl-001,10.0.0.1,10.0.1.1,443,ssl,allow,Allow ssl traffic from source to destinationss
-allow-ssl_002,10.0.0.1,10.0.1.2,443,ssl,allow,Allow ssl traffic from source to destinationss
 rule_4,10.0.0.1,20.0.0.0,443,tcp,allow,"CH455567 , PB , 20/11/25"
 allow-ssl_003,10.0.0.1,10.0.1.2,443,ssl,allow,Allow ssl traffic from source to destinationss
 allow-ssl_004,10.0.0.1,10.0.1.2,443,ssl,allow,Allow ssl traffic from source to destinationss
@@ -12,3 +11,4 @@ deny-test-validation,10.0.0.5,8.8.8.8,80,tcp,deny,test validation
 claude-test,10.0.0.1,10.0.0.2,8080,tcp,allow,Test rule for Claude
 allow-database-access,172.16.10.25,10.0.5.100,3306,tcp,allow,Allow MySQL database access from app server to database server
 Random_Web_Access,192.168.10.0/24,0.0.0.0/0,443,tcp,allow,Random rule - Allow HTTPS traffic from internal network to any destination
+allow-443_002,10.1.1.1,20.1.1.1,443,tcp,allow,"CH334468 , PB , 21/11/25"
