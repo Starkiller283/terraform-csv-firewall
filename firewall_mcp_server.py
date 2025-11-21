@@ -19,7 +19,7 @@ CSV_PATH = str(SCRIPT_DIR / "rules.csv")
 REPO_PATH = str(SCRIPT_DIR)  # Path to local git repository
 
 # Firewall connection - uses API key
-FIREWALL_IP = "192.168.0.200"
+FIREWALL_IP = "192.168.0.18"
 API_KEY = "LUFRPT1wOU12bXpFZG9YZ2FBV1VRWFpWRU11OEltYzQ9ZytqWjRUUSt4bnhsbVY2VEtGbTIvSTV0QnVEKzErdGJsV3JscEcxOXk4NUhzRzFTcUZlcHVYTjNHSm5zWnBnMw=="  # Your actual API key from terraform.tfvars
 
 # Initialize MCP

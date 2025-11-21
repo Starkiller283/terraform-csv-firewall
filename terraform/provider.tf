@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "panos" {
-  hostname = "192.168.0.200"          
+  hostname = "192.168.0.18"          
   api_key  = var.panos_api_key    
   timeout  = 120
 }
