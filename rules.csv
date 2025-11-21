@@ -2,7 +2,7 @@ rule_name,source_ip,destination_ip,port,protocol,action,description
 allow-ssh,10.0.0.1,10.0.1.1,22,ssh,allow,Allow SSH traffic from source to destinations
 allow-ssl-001,10.0.0.1,10.0.1.1,443,ssl,allow,Allow ssl traffic from source to destinationss
 allow-ssl_002,10.0.0.1,10.0.1.2,443,ssl,allow,Allow ssl traffic from source to destinationss
-rule_4,10.0.0.1,20.0.0.01,443,tcp,allow,"CH455567 , PB , 20/11/25"
+rule_4,10.0.0.1,20.0.0.0,443,tcp,allow,"CH455567 , PB , 20/11/25"
 allow-ssl_003,10.0.0.1,10.0.1.2,443,ssl,allow,Allow ssl traffic from source to destinationss
 allow-ssl_004,10.0.0.1,10.0.1.2,443,ssl,allow,Allow ssl traffic from source to destinationss
 allow-ssl_005,10.0.0.1,10.0.1.2,443,ssl,allow,Allow ssl traffic from source to destinationss
