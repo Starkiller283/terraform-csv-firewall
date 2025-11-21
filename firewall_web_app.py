@@ -696,6 +696,47 @@ def get_rule_at_position(position: int) -> str:
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
+# ============= SMART HELPER FUNCTIONS =============
+
+def normalize_action(action_text: str) -> str:
+    """Convert various phrasings to standard actions"""
+    action_lower = action_text.lower()
+    
+    if any(word in action_lower for word in ['allow', 'permit', 'let', 'enable', 'grant']):
+        return 'allow'
+    elif any(word in action_lower for word in ['deny', 'block', 'stop', 'prevent', 'reject']):
+        return 'deny'
+    
+    return action_text
+
+def detect_service_from_text(text: str) -> tuple:
+    """Detect common services and return (protocol, port)"""
+    text_lower = text.lower()
+    
+    service_map = {
+        'ssh': ('tcp', '22'),
+        'http': ('tcp', '80'),
+        'https': ('tcp', '443'),
+        'ssl': ('tcp', '443'),
+        'dns': ('udp', '53'),
+        'ftp': ('tcp', '21'),
+        'mysql': ('tcp', '3306'),
+        'database': ('tcp', '3306'),
+        'rdp': ('tcp', '3389'),
+    }
+    
+    for keyword, (proto, port) in service_map.items():
+        if keyword in text_lower:
+            return (proto, port)
+    
+    return (None, None)
+
+def extract_ips_from_text(text: str) -> list:
+    """Extract IP addresses from natural language"""
+    import re
+    ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?\b'
+    return re.findall(ip_pattern, text)
+
 
 # ============= LANGCHAIN TOOLS =============
 
@@ -978,16 +1019,59 @@ ALL_TOOLS = [
 
 @st.cache_resource
 def create_agent():
-    """Create the LangChain agent (cached)"""
+    """Create the LangChain agent with natural language understanding (cached)"""
     llm = ChatAnthropic(
         model="claude-sonnet-4-5-20250929",
-        temperature=0
+        temperature=0.3  # Higher temp for better conversation
     )
     
     # Bind tools to the model (LangChain 1.0+ way)
     llm_with_tools = llm.bind_tools(ALL_TOOLS)
     
     return llm_with_tools
+
+def get_system_prompt():
+    """Get the intelligent system prompt for natural language understanding"""
+    return """You are an intelligent Palo Alto firewall management assistant with advanced natural language understanding.
+
+🧠 CORE CAPABILITIES:
+1. **Understand Intent** - Interpret what users want even with casual language
+2. **Extract Information** - Pull IPs, ports, protocols from natural text
+3. **Smart Defaults** - Fill in reasonable values when not specified
+4. **Ask Clarifying Questions** - When critical info is missing, ask specifically
+
+🔍 INTENT RECOGNITION:
+**Actions:**
+- "block", "deny", "stop", "prevent" → deny action
+- "allow", "permit", "let", "enable" → allow action
+- "remove", "delete" → delete operation
+- "show", "list", "display" → list operation
+
+**Services (auto-detect port & protocol):**
+- "ssh" → port 22, tcp
+- "web" or "http" → port 80, tcp
+- "https" or "ssl" → port 443, tcp
+- "database" or "mysql" → port 3306, tcp
+
+**IP Extraction:**
+- Look for X.X.X.X patterns
+- "from anywhere" → source: "any"
+- "to anywhere" → destination: "any"
+
+📋 EXAMPLES:
+"block traffic from 10.0.0.5" → deny rule, source=10.0.0.5, dest=any
+"let me ssh to 192.168.1.10" → allow rule, service=ssh, dest=192.168.1.10
+"show me web rules" → search for http/https/port 80/443
+"remove that ssh rule" → search ssh, then ask which to delete
+
+⚡ WORKFLOW:
+1. Parse natural language
+2. Extract available info
+3. If complete → execute
+4. If missing info → ask ONE specific question
+5. Summarize actions clearly
+
+Remember: Have a conversation, not just execute commands!"""
 
 
 # ============= STREAMLIT UI =============
@@ -1064,15 +1148,22 @@ def main():
                 try:
                     llm_with_tools = create_agent()
                     
-                    # Create system message
-                    system_msg = """You are a helpful Palo Alto firewall management assistant. 
-                    Help users manage their firewall rules. Be concise and clear.
-                    You have access to tools to manage firewall rules."""
+                    # Use intelligent system prompt
+                    system_msg = get_system_prompt()
                     
-                    messages = [
-                        {"role": "system", "content": system_msg},
-                        {"role": "user", "content": prompt}
-                    ]
+                    # Build conversation with history
+                    messages = [{"role": "system", "content": system_msg}]
+                    
+                    # Add recent conversation history (last 5 exchanges)
+                    recent_messages = st.session_state.messages[-10:] if len(st.session_state.messages) > 10 else st.session_state.messages
+                    for msg in recent_messages:
+                        messages.append({
+                            "role": "user" if msg["role"] == "user" else "assistant",
+                            "content": msg["content"]
+                        })
+                    
+                    # Add current prompt
+                    messages.append({"role": "user", "content": prompt})
                     
                     # Invoke with tool calling
                     response = llm_with_tools.invoke(messages)
