@@ -2,3 +2,13 @@ timestamp,username,action,rule_name
 2025-11-20T14:21:48.037372,demo_user,ADD,rule_4
 2025-11-20T16:45:35.530691,demo_user,REORDER,rule_4
 2025-11-21T16:07:51.167472,demo_user,DELETE,allow-ssh
+2025-11-21T16:44:05.161320,demo_user,ADD,Random_Web_Access
+2025-11-21T16:44:49.153839,demo_user,COMMIT,langchain bot test push
+2025-11-21T17:22:54.662372,demo_user,DELETE,allow-ssl_002
+2025-11-21T17:26:22.144934,demo_user,ADD,allow-443_002
+2025-11-21T17:27:24.083230,demo_user,COMMIT,new rule for testing purposes
+2025-11-21T17:34:22.618718,demo_user,DELETE,rule_4
+2025-11-21T17:37:50.741166,demo_user,ADD,CH334468_PB_21-11-2
+2025-11-21T17:38:37.029803,demo_user,EDIT,CH334468_PB_21-11-2
+2025-11-21T17:42:33.878491,demo_user,ADD,Allow-Web-Traffic
+2025-11-21T17:43:17.909167,demo_user,COMMIT,test-rule-03
