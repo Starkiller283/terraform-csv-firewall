@@ -860,10 +860,15 @@ get_first_rule_tool = Tool(
     description="Get the name of the first (top) rule in the CSV file. Use this when user says 'first rule' or 'top rule'."
 )
 
-get_rule_position_tool = Tool.from_function(
-    func=get_rule_at_position,
+class GetRulePositionInput(BaseModel):
+    """Input schema for getting rule at position"""
+    position: int = Field(description="Position number (1-based index) of the rule to get")
+
+get_rule_position_tool = StructuredTool(
     name="get_rule_at_position",
-    description="Get the name of a rule at a specific position number (1 = first, 2 = second, etc). Use when user refers to a numbered position."
+    func=get_rule_at_position,
+    description="Get the name of a rule at a specific position number (1 = first, 2 = second, etc). Use when user refers to a numbered position like 'rule 3' or '3rd rule'.",
+    args_schema=GetRulePositionInput
 )
 
 class DuplicateRuleInput(BaseModel):
@@ -881,22 +886,38 @@ count_rules_tool = Tool(
     description="Count total rules. Use for 'how many rules', 'count rules', 'number of rules'"
 )
 
-find_keyword_tool = Tool.from_function(
-    func=find_rule_by_keyword,
+class FindKeywordInput(BaseModel):
+    """Input schema for finding by keyword"""
+    keyword: str = Field(description="Keyword to search for in rule names and descriptions")
+
+find_keyword_tool = StructuredTool(
     name="find_rule_by_keyword",
-    description="Find rules by keyword in name/description. Use for 'find rules with', 'search for', 'rules containing'"
+    func=find_rule_by_keyword,
+    description="Find rules by keyword in name/description. Use for 'find rules with', 'search for', 'rules containing'",
+    args_schema=FindKeywordInput
 )
 
-find_ip_tool = Tool.from_function(
-    func=find_rules_by_ip,
+
+class FindIPInput(BaseModel):
+    """Input schema for finding by IP"""
+    ip_address: str = Field(description="IP address to search for in source or destination")
+
+find_ip_tool = StructuredTool(
     name="find_rules_by_ip",
-    description="Find rules by IP address. Use when user mentions an IP like '10.0.0.1'"
+    func=find_rules_by_ip,
+    description="Find rules by IP address. Use when user mentions an IP like '10.0.0.1'",
+    args_schema=FindIPInput
 )
 
-find_port_tool = Tool.from_function(
-    func=find_rules_by_port,
+class FindPortInput(BaseModel):
+    """Input schema for finding by port"""
+    port: str = Field(description="Port number to search for")
+
+find_port_tool = StructuredTool(
     name="find_rules_by_port",
-    description="Find rules by port number. Use for 'port 80', 'port 443', 'what uses port X'"
+    func=find_rules_by_port,
+    description="Find rules by port number. Use for 'port 80', 'port 443', 'what uses port X'",
+    args_schema=FindPortInput
 )
 
 get_allow_rules_tool = Tool(
@@ -911,10 +932,15 @@ get_deny_rules_tool = Tool(
     description="List all deny rules. Use for 'show deny rules', 'blocked traffic', 'denied rules'"
 )
 
-get_rule_details_tool = Tool.from_function(
-    func=get_rule_details,
+class GetRuleDetailsInput(BaseModel):
+    """Input schema for getting rule details"""
+    rule_name: str = Field(description="Name of the rule to get details for")
+
+get_rule_details_tool = StructuredTool(
     name="get_rule_details",
-    description="Get full details of a specific rule. Use for 'details of X', 'show me rule X', 'info about X'"
+    func=get_rule_details,
+    description="Get full details of a specific rule. Use for 'details of X', 'show me rule X', 'info about X'",
+    args_schema=GetRuleDetailsInput
 )
 
 summarize_rules_tool = Tool(
@@ -923,29 +949,50 @@ summarize_rules_tool = Tool(
     description="Get overview/summary of all rules. Use for 'summary', 'overview', 'statistics', 'stats'"
 )
 
-check_exists_tool = Tool.from_function(
-    func=check_rule_exists,
+class CheckExistsInput(BaseModel):
+    """Input schema for checking if rule exists"""
+    rule_name: str = Field(description="Name of the rule to check")
+
+check_exists_tool = StructuredTool(
     name="check_rule_exists",
-    description="Check if a rule exists. Use for 'does X exist', 'is there a rule called X'"
+    func=check_rule_exists,
+    description="Check if a rule exists. Use for 'does X exist', 'is there a rule called X'",
+    args_schema=CheckExistsInput
 )
 
-delete_containing_tool = Tool.from_function(
-    func=delete_rules_containing,
+class DeleteContainingInput(BaseModel):
+    """Input schema for deleting rules by keyword"""
+    keyword: str = Field(description="Keyword to search for in rules to delete")
+
+delete_containing_tool = StructuredTool(
     name="delete_rules_containing",
-    description="Delete all rules with keyword. Use for 'delete all rules with', 'remove rules containing'"
+    func=delete_rules_containing,
+    description="Delete all rules with keyword. Use for 'delete all rules with', 'remove rules containing'",
+    args_schema=DeleteContainingInput
 )
 
-disable_rule_tool = Tool.from_function(
-    func=disable_rule,
+class DisableRuleInput(BaseModel):
+    """Input schema for disabling a rule"""
+    rule_name: str = Field(description="Name of the rule to disable")
+
+disable_rule_tool = StructuredTool(
     name="disable_rule",
-    description="Disable a rule (adds DISABLED- prefix). Use for 'disable', 'turn off', 'deactivate'"
+    func=disable_rule,
+    description="Disable a rule (adds DISABLED- prefix). Use for 'disable', 'turn off', 'deactivate'",
+    args_schema=DisableRuleInput
 )
 
-enable_rule_tool = Tool.from_function(
-    func=enable_rule,
+class EnableRuleInput(BaseModel):
+    """Input schema for enabling a rule"""
+    rule_name: str = Field(description="Name of the disabled rule to enable")
+
+enable_rule_tool = StructuredTool(
     name="enable_rule",
-    description="Re-enable a disabled rule. Use for 'enable', 'turn on', 'activate'"
+    func=enable_rule,
+    description="Re-enable a disabled rule. Use for 'enable', 'turn on', 'activate'",
+    args_schema=EnableRuleInput
 )
+
 
 duplicate_rule_tool = StructuredTool(
     name="duplicate_rule",
