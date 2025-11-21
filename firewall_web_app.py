@@ -329,7 +329,7 @@ def commit_and_push_changes(commit_message: str) -> str:
         
 📝 Commit: {commit.hexsha[:7]} - {commit_message}
 🚀 GitHub Actions running...
-Check: https://github.com/YOUR_REPO/actions
+Check: https://github.com/starkiller283/actions
 """
         log_change(st.session_state.get('username', 'unknown'), 'COMMIT', commit_message)
         return result
@@ -397,10 +397,22 @@ add_rule_tool = StructuredTool(
     args_schema=AddRuleInput
 )
 
-delete_rule_tool = Tool.from_function(
-    func=delete_rule_from_csv,
+def delete_rule_wrapper(rule_name: str) -> str:
+    """Wrapper to ensure proper string handling"""
+    rule_name = str(rule_name).strip()
+    return delete_rule_from_csv(rule_name)
+
+# Add schema class (put this near your other schema classes around line 407)
+class DeleteRuleInput(BaseModel):
+    """Input schema for deleting a rule"""
+    rule_name: str = Field(description="Exact name of the firewall rule to delete (case-sensitive)")
+
+# Replace the tool definition
+delete_rule_tool = StructuredTool(
     name="delete_rule_from_csv",
-    description="Delete a firewall rule from CSV"
+    func=delete_rule_wrapper,
+    description="Delete a firewall rule from CSV by its exact name. Rule names are case-sensitive. List rules first to get the exact name.",
+    args_schema=DeleteRuleInput
 )
 
 def list_firewall_rules_wrapper(*args, **kwargs):
