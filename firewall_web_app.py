@@ -432,6 +432,11 @@ def find_rule_by_keyword(keyword: str) -> str:
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
+def find_rule_by_keyword_wrapper(keyword: str) -> str:
+    """Wrapper for find_rule_by_keyword"""
+    return find_rule_by_keyword(str(keyword).strip())
+
+
 def find_rules_by_ip(ip_address: str) -> str:
     """Find all rules involving a specific IP"""
     try:
@@ -449,6 +454,11 @@ def find_rules_by_ip(ip_address: str) -> str:
         return result
     except Exception as e:
         return f"❌ Error: {str(e)}"
+
+def find_rules_by_ip_wrapper(ip_address: str) -> str:
+    """Wrapper for find_rules_by_ip"""
+    return find_rules_by_ip(str(ip_address).strip())
+
 
 def find_rules_by_port(port: str) -> str:
     """Find all rules for a specific port"""
@@ -695,6 +705,43 @@ def get_rule_at_position(position: int) -> str:
         return f"Rule at position {position} is: {df.iloc[position - 1]['rule_name']}"
     except Exception as e:
         return f"❌ Error: {str(e)}"
+    
+def get_rule_at_position_wrapper(position: int) -> str:
+    """Wrapper to handle tool calling"""
+    # Ensure position is an integer
+    if isinstance(position, str):
+        position = int(position)
+    return get_rule_at_position(position)
+
+def find_rules_by_port_wrapper(port: str) -> str:
+    """Wrapper for find_rules_by_port"""
+    port = str(port).strip()
+    return find_rules_by_port(port)
+
+def get_rule_details_wrapper(rule_name: str) -> str:
+    """Wrapper for get_rule_details"""
+    rule_name = str(rule_name).strip()
+    return get_rule_details(rule_name)
+
+def check_rule_exists_wrapper(rule_name: str) -> str:
+    """Wrapper for check_rule_exists"""
+    rule_name = str(rule_name).strip()
+    return check_rule_exists(rule_name)
+
+def delete_rules_containing_wrapper(keyword: str) -> str:
+    """Wrapper for delete_rules_containing"""
+    keyword = str(keyword).strip()
+    return delete_rules_containing(keyword)
+
+def disable_rule_wrapper(rule_name: str) -> str:
+    """Wrapper for disable_rule"""
+    rule_name = str(rule_name).strip()
+    return disable_rule(rule_name)
+
+def enable_rule_wrapper(rule_name: str) -> str:
+    """Wrapper for enable_rule"""
+    rule_name = str(rule_name).strip()
+    return enable_rule(rule_name)
 
 # ============= SMART HELPER FUNCTIONS =============
 
@@ -866,7 +913,7 @@ class GetRulePositionInput(BaseModel):
 
 get_rule_position_tool = StructuredTool(
     name="get_rule_at_position",
-    func=get_rule_at_position,
+    func=get_rule_at_position_wrapper,  # ← Using wrapper
     description="Get the name of a rule at a specific position number (1 = first, 2 = second, etc). Use when user refers to a numbered position like 'rule 3' or '3rd rule'.",
     args_schema=GetRulePositionInput
 )
@@ -892,7 +939,7 @@ class FindKeywordInput(BaseModel):
 
 find_keyword_tool = StructuredTool(
     name="find_rule_by_keyword",
-    func=find_rule_by_keyword,
+    func=find_rule_by_keyword_wrapper,  # ← Using wrapper
     description="Find rules by keyword in name/description. Use for 'find rules with', 'search for', 'rules containing'",
     args_schema=FindKeywordInput
 )
@@ -904,7 +951,7 @@ class FindIPInput(BaseModel):
 
 find_ip_tool = StructuredTool(
     name="find_rules_by_ip",
-    func=find_rules_by_ip,
+    func=find_rules_by_ip_wrapper,  # ← Using wrapper
     description="Find rules by IP address. Use when user mentions an IP like '10.0.0.1'",
     args_schema=FindIPInput
 )
@@ -938,7 +985,7 @@ class GetRuleDetailsInput(BaseModel):
 
 get_rule_details_tool = StructuredTool(
     name="get_rule_details",
-    func=get_rule_details,
+    func=get_rule_details_wrapper,  # ← Using wrapper
     description="Get full details of a specific rule. Use for 'details of X', 'show me rule X', 'info about X'",
     args_schema=GetRuleDetailsInput
 )
@@ -955,7 +1002,7 @@ class CheckExistsInput(BaseModel):
 
 check_exists_tool = StructuredTool(
     name="check_rule_exists",
-    func=check_rule_exists,
+    func=check_rule_exists_wrapper,  # ← Using wrapper
     description="Check if a rule exists. Use for 'does X exist', 'is there a rule called X'",
     args_schema=CheckExistsInput
 )
@@ -966,10 +1013,11 @@ class DeleteContainingInput(BaseModel):
 
 delete_containing_tool = StructuredTool(
     name="delete_rules_containing",
-    func=delete_rules_containing,
+    func=delete_rules_containing_wrapper,  # ← Using wrapper
     description="Delete all rules with keyword. Use for 'delete all rules with', 'remove rules containing'",
     args_schema=DeleteContainingInput
 )
+
 
 class DisableRuleInput(BaseModel):
     """Input schema for disabling a rule"""
@@ -977,7 +1025,7 @@ class DisableRuleInput(BaseModel):
 
 disable_rule_tool = StructuredTool(
     name="disable_rule",
-    func=disable_rule,
+    func=disable_rule_wrapper,  # ← Using wrapper
     description="Disable a rule (adds DISABLED- prefix). Use for 'disable', 'turn off', 'deactivate'",
     args_schema=DisableRuleInput
 )
@@ -988,7 +1036,7 @@ class EnableRuleInput(BaseModel):
 
 enable_rule_tool = StructuredTool(
     name="enable_rule",
-    func=enable_rule,
+    func=enable_rule_wrapper,  # ← Using wrapper
     description="Re-enable a disabled rule. Use for 'enable', 'turn on', 'activate'",
     args_schema=EnableRuleInput
 )
