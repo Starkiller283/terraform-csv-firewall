@@ -295,16 +295,16 @@ def show_pending_changes() -> str:
     try:
         repo = Repo(SCRIPT_DIR)
         if not repo.is_dirty(untracked_files=True):
-            return "✅ No pending changes - CSV is clean"
+            return " No pending changes - CSV is clean"
         
         changed_files = [item.a_path for item in repo.index.diff(None)]
         if 'rules.csv' not in changed_files:
             return "No changes to rules.csv"
         
         diff = repo.git.diff(CSV_PATH)
-        return f"📝 Pending changes:\n\n{diff}\n\n⚠️ Commit and push to deploy!"
+        return f" Pending changes:\n\n{diff}\n\n⚠️ Commit and push to deploy!"
     except Exception as e:
-        return f"❌ Error: {str(e)}"
+        return f" Error: {str(e)}"
 
 def commit_and_push_changes(commit_message: str) -> str:
     """Commit CSV changes and push to GitHub"""
@@ -327,9 +327,8 @@ def commit_and_push_changes(commit_message: str) -> str:
         
         result = f"""✅ Changes deployed!
         
-📝 Commit: {commit.hexsha[:7]} - {commit_message}
-🚀 GitHub Actions running...
-Check: https://github.com/starkiller283/actions
+Commit: {commit.hexsha[:7]} - {commit_message}
+GitHub Actions running...
 """
         log_change(st.session_state.get('username', 'unknown'), 'COMMIT', commit_message)
         return result
@@ -358,12 +357,344 @@ def validate_rule_syntax(rule_name: str = None, source_ip: str = None,
     is_valid, messages = PaloAltoValidator.validate_all(rule_data)
     
     if is_valid and not messages:
-        return "✅ All parameters are valid!"
+        return " All parameters are valid!"
     elif is_valid and messages:
-        return "✅ Valid with warnings:\n\n" + "\n\n".join(messages)
+        return " Valid with warnings:\n\n" + "\n\n".join(messages)
     else:
-        return "❌ Validation errors:\n\n" + "\n\n".join(messages)
+        return " Validation errors:\n\n" + "\n\n".join(messages)
     
+
+def get_last_rule() -> str:
+    """Get the name of the last rule in CSV"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if df.empty:
+            return " No rules in CSV"
+        
+        last_rule = df.iloc[-1]['rule_name']
+        return f"The last rule is: {last_rule}"
+    except Exception as e:
+        return f" Error: {str(e)}"
+
+def get_first_rule() -> str:
+    """Get the name of the first rule in CSV"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if df.empty:
+            return " No rules in CSV"
+        
+        first_rule = df.iloc[0]['rule_name']
+        return f"The first rule is: {first_rule}"
+    except Exception as e:
+        return f" Error: {str(e)}"
+
+def get_rule_at_position(position: int) -> str:
+    """Get the name of a rule at a specific position (1-based)"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if df.empty:
+            return " No rules in CSV"
+        
+        if position < 1 or position > len(df):
+            return f" Position {position} out of range. There are {len(df)} rules."
+        
+        rule_name = df.iloc[position - 1]['rule_name']
+        return f"Rule at position {position} is: {rule_name}"
+    except Exception as e:
+        return f" Error: {str(e)}"
+
+def count_rules() -> str:
+    """Count total number of rules"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        total = len(df)
+        allow = len(df[df['action'] == 'allow'])
+        deny = len(df[df['action'] == 'deny'])
+        return f"Total rules: {total}\n• Allow rules: {allow}\n• Deny rules: {deny}"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def find_rule_by_keyword(keyword: str) -> str:
+    """Find rules containing a keyword"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        mask = (df['rule_name'].str.contains(keyword, case=False, na=False) | 
+                df['description'].str.contains(keyword, case=False, na=False))
+        matches = df[mask]
+        
+        if matches.empty:
+            return f"No rules found containing '{keyword}'"
+        
+        result = f"Found {len(matches)} rule(s) with '{keyword}':\n\n"
+        for idx, row in matches.iterrows():
+            result += f"• {row['rule_name']}: {row['description']}\n"
+        return result
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def find_rules_by_ip(ip_address: str) -> str:
+    """Find all rules involving a specific IP"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        mask = (df['source_ip'].str.contains(ip_address, case=False, na=False) | 
+                df['destination_ip'].str.contains(ip_address, case=False, na=False))
+        matches = df[mask]
+        
+        if matches.empty:
+            return f"No rules found for IP '{ip_address}'"
+        
+        result = f"Found {len(matches)} rule(s) involving {ip_address}:\n\n"
+        for idx, row in matches.iterrows():
+            result += f"• {row['rule_name']}: {row['source_ip']} → {row['destination_ip']}\n"
+        return result
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def find_rules_by_port(port: str) -> str:
+    """Find all rules for a specific port"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        matches = df[df['port'].astype(str) == str(port)]
+        
+        if matches.empty:
+            return f"No rules found for port {port}"
+        
+        result = f"Found {len(matches)} rule(s) on port {port}:\n\n"
+        for idx, row in matches.iterrows():
+            result += f"• {row['rule_name']}: {row['action']} - {row['description']}\n"
+        return result
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def get_allow_rules() -> str:
+    """Get all 'allow' rules"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        allows = df[df['action'] == 'allow']
+        
+        if allows.empty:
+            return "No allow rules found"
+        
+        result = f"Allow rules ({len(allows)} total):\n\n"
+        for idx, row in allows.iterrows():
+            result += f"• {row['rule_name']}: {row['source_ip']} → {row['destination_ip']}:{row['port']}\n"
+        return result
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def get_deny_rules() -> str:
+    """Get all 'deny' rules"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        denies = df[df['action'] == 'deny']
+        
+        if denies.empty:
+            return "No deny rules found"
+        
+        result = f"Deny rules ({len(denies)} total):\n\n"
+        for idx, row in denies.iterrows():
+            result += f"• {row['rule_name']}: {row['source_ip']} → {row['destination_ip']}:{row['port']}\n"
+        return result
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def get_rule_details(rule_name: str) -> str:
+    """Get full details of a specific rule"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        rule = df[df['rule_name'] == rule_name]
+        
+        if rule.empty:
+            return f"Rule '{rule_name}' not found"
+        
+        r = rule.iloc[0]
+        return f"""📋 Rule: {r['rule_name']}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Action: {r['action']}
+Protocol: {r['protocol']}
+Source: {r['source_ip']}
+Destination: {r['destination_ip']}
+Port: {r['port']}
+Description: {r['description']}"""
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def delete_rules_containing(keyword: str) -> str:
+    """Delete all rules with keyword in name/description"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        mask = (df['rule_name'].str.contains(keyword, case=False, na=False) | 
+                df['description'].str.contains(keyword, case=False, na=False))
+        to_delete = df[mask]
+        count = len(to_delete)
+        
+        if count == 0:
+            return f"No rules found containing '{keyword}'"
+        
+        deleted_names = to_delete['rule_name'].tolist()
+        df = df[~mask]
+        df.to_csv(CSV_PATH, index=False)
+        
+        return f"✅ Deleted {count} rule(s): {', '.join(deleted_names)}"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def disable_rule(rule_name: str) -> str:
+    """Disable a rule by adding 'DISABLED-' prefix"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if rule_name not in df['rule_name'].values:
+            return f"❌ Rule '{rule_name}' not found"
+        
+        idx = df[df['rule_name'] == rule_name].index[0]
+        new_name = f"DISABLED-{rule_name}"
+        df.at[idx, 'rule_name'] = new_name
+        df.to_csv(CSV_PATH, index=False)
+        log_change(st.session_state.get('username', 'unknown'), 'DISABLE', rule_name)
+        
+        return f"✅ Rule disabled (renamed to '{new_name}')"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def enable_rule(rule_name: str) -> str:
+    """Enable a disabled rule"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        disabled_name = f"DISABLED-{rule_name}" if not rule_name.startswith("DISABLED-") else rule_name
+        
+        if disabled_name not in df['rule_name'].values:
+            return f"❌ Rule '{disabled_name}' not found"
+        
+        idx = df[df['rule_name'] == disabled_name].index[0]
+        new_name = disabled_name.replace("DISABLED-", "")
+        df.at[idx, 'rule_name'] = new_name
+        df.to_csv(CSV_PATH, index=False)
+        log_change(st.session_state.get('username', 'unknown'), 'ENABLE', rule_name)
+        
+        return f"✅ Rule enabled (renamed to '{new_name}')"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def duplicate_rule(rule_name: str, new_name: str) -> str:
+    """Create a copy of an existing rule"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        
+        if rule_name not in df['rule_name'].values:
+            return f"❌ Rule '{rule_name}' not found"
+        
+        if new_name in df['rule_name'].values:
+            return f"❌ Rule '{new_name}' already exists"
+        
+        original = df[df['rule_name'] == rule_name].iloc[0]
+        new_rule = original.copy()
+        new_rule['rule_name'] = new_name
+        
+        df = pd.concat([df, new_rule.to_frame().T], ignore_index=True)
+        df.to_csv(CSV_PATH, index=False)
+        log_change(st.session_state.get('username', 'unknown'), 'DUPLICATE', new_name)
+        
+        return f"✅ Rule '{rule_name}' duplicated as '{new_name}'"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def get_recent_rules(count: int = 5) -> str:
+    """Get the N most recently added rules"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if len(df) == 0:
+            return "No rules in CSV"
+        
+        count = min(count, len(df))
+        recent = df.tail(count)
+        
+        result = f"Last {count} rule(s):\n\n"
+        for idx, row in recent.iterrows():
+            result += f"• {row['rule_name']}: {row['description']}\n"
+        return result
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def check_rule_exists(rule_name: str) -> str:
+    """Check if a rule exists"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        exists = rule_name in df['rule_name'].values
+        
+        if exists:
+            return f"✅ Rule '{rule_name}' exists"
+        else:
+            similar = df[df['rule_name'].str.contains(rule_name, case=False, na=False)]['rule_name'].tolist()
+            if similar:
+                return f"❌ Rule '{rule_name}' not found. Did you mean: {', '.join(similar[:3])}?"
+            return f"❌ Rule '{rule_name}' not found"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def summarize_rules() -> str:
+    """Get a high-level summary"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        
+        if df.empty:
+            return "No rules in CSV"
+        
+        total = len(df)
+        allows = len(df[df['action'] == 'allow'])
+        denies = len(df[df['action'] == 'deny'])
+        protocols = df['protocol'].value_counts().head(3)
+        ports = df['port'].value_counts().head(3)
+        
+        result = f"""📊 Rules Summary
+━━━━━━━━━━━━━━━━━━━━━━━━
+Total Rules: {total}
+• Allow: {allows}
+• Deny: {denies}
+
+Top Protocols:
+"""
+        for proto, count in protocols.items():
+            result += f"• {proto}: {count}\n"
+        
+        result += f"\nTop Ports:\n"
+        for port, count in ports.items():
+            result += f"• {port}: {count}\n"
+        
+        return result
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def get_last_rule() -> str:
+    """Get the name of the last rule"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if df.empty:
+            return "❌ No rules in CSV"
+        return f"The last rule is: {df.iloc[-1]['rule_name']}"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def get_first_rule() -> str:
+    """Get the name of the first rule"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if df.empty:
+            return "❌ No rules in CSV"
+        return f"The first rule is: {df.iloc[0]['rule_name']}"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
+def get_rule_at_position(position: int) -> str:
+    """Get rule name at position (1-based)"""
+    try:
+        df = pd.read_csv(CSV_PATH)
+        if df.empty:
+            return "❌ No rules in CSV"
+        if position < 1 or position > len(df):
+            return f"❌ Position {position} out of range. There are {len(df)} rules."
+        return f"Rule at position {position} is: {df.iloc[position - 1]['rule_name']}"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
 
 
 # ============= LANGCHAIN TOOLS =============
@@ -476,7 +807,139 @@ show_changes_tool = Tool(
     description="Show uncommitted changes to rules CSV"
 )
 
+get_last_rule_tool = Tool(
+    name="get_last_rule",
+    func=lambda *args, **kwargs: get_last_rule(),
+    description="Get the name of the last (bottom) rule in the CSV file. Use this when user says 'last rule' or 'bottom rule'."
+)
+
+get_first_rule_tool = Tool(
+    name="get_first_rule", 
+    func=lambda *args, **kwargs: get_first_rule(),
+    description="Get the name of the first (top) rule in the CSV file. Use this when user says 'first rule' or 'top rule'."
+)
+
+get_rule_position_tool = Tool.from_function(
+    func=get_rule_at_position,
+    name="get_rule_at_position",
+    description="Get the name of a rule at a specific position number (1 = first, 2 = second, etc). Use when user refers to a numbered position."
+)
+
+class DuplicateRuleInput(BaseModel):
+    """Input schema for duplicating a rule"""
+    rule_name: str = Field(description="Name of the rule to copy")
+    new_name: str = Field(description="Name for the new duplicate rule")
+
+class GetRecentInput(BaseModel):
+    """Input schema for getting recent rules"""
+    count: int = Field(default=5, description="Number of recent rules to show")
+
+count_rules_tool = Tool(
+    name="count_rules",
+    func=lambda *args, **kwargs: count_rules(),
+    description="Count total rules. Use for 'how many rules', 'count rules', 'number of rules'"
+)
+
+find_keyword_tool = Tool.from_function(
+    func=find_rule_by_keyword,
+    name="find_rule_by_keyword",
+    description="Find rules by keyword in name/description. Use for 'find rules with', 'search for', 'rules containing'"
+)
+
+find_ip_tool = Tool.from_function(
+    func=find_rules_by_ip,
+    name="find_rules_by_ip",
+    description="Find rules by IP address. Use when user mentions an IP like '10.0.0.1'"
+)
+
+find_port_tool = Tool.from_function(
+    func=find_rules_by_port,
+    name="find_rules_by_port",
+    description="Find rules by port number. Use for 'port 80', 'port 443', 'what uses port X'"
+)
+
+get_allow_rules_tool = Tool(
+    name="get_allow_rules",
+    func=lambda *args, **kwargs: get_allow_rules(),
+    description="List all allow rules. Use for 'show allow rules', 'permitted traffic', 'allowed rules'"
+)
+
+get_deny_rules_tool = Tool(
+    name="get_deny_rules",
+    func=lambda *args, **kwargs: get_deny_rules(),
+    description="List all deny rules. Use for 'show deny rules', 'blocked traffic', 'denied rules'"
+)
+
+get_rule_details_tool = Tool.from_function(
+    func=get_rule_details,
+    name="get_rule_details",
+    description="Get full details of a specific rule. Use for 'details of X', 'show me rule X', 'info about X'"
+)
+
+summarize_rules_tool = Tool(
+    name="summarize_rules",
+    func=lambda *args, **kwargs: summarize_rules(),
+    description="Get overview/summary of all rules. Use for 'summary', 'overview', 'statistics', 'stats'"
+)
+
+check_exists_tool = Tool.from_function(
+    func=check_rule_exists,
+    name="check_rule_exists",
+    description="Check if a rule exists. Use for 'does X exist', 'is there a rule called X'"
+)
+
+delete_containing_tool = Tool.from_function(
+    func=delete_rules_containing,
+    name="delete_rules_containing",
+    description="Delete all rules with keyword. Use for 'delete all rules with', 'remove rules containing'"
+)
+
+disable_rule_tool = Tool.from_function(
+    func=disable_rule,
+    name="disable_rule",
+    description="Disable a rule (adds DISABLED- prefix). Use for 'disable', 'turn off', 'deactivate'"
+)
+
+enable_rule_tool = Tool.from_function(
+    func=enable_rule,
+    name="enable_rule",
+    description="Re-enable a disabled rule. Use for 'enable', 'turn on', 'activate'"
+)
+
+duplicate_rule_tool = StructuredTool(
+    name="duplicate_rule",
+    func=duplicate_rule,
+    description="Copy/clone an existing rule. Use for 'copy rule', 'duplicate rule', 'clone rule'",
+    args_schema=DuplicateRuleInput
+)
+
+get_recent_tool = StructuredTool(
+    name="get_recent_rules",
+    func=get_recent_rules,
+    description="Get N most recent rules. Use for 'recent rules', 'last X rules', 'newest rules'",
+    args_schema=GetRecentInput
+)
+
+get_last_rule_tool = Tool(
+    name="get_last_rule",
+    func=lambda *args, **kwargs: get_last_rule(),
+    description="Get name of last rule. Use when user says 'last rule', 'bottom rule'"
+)
+
+get_first_rule_tool = Tool(
+    name="get_first_rule",
+    func=lambda *args, **kwargs: get_first_rule(),
+    description="Get name of first rule. Use when user says 'first rule', 'top rule'"
+)
+
+get_rule_position_tool = Tool.from_function(
+    func=get_rule_at_position,
+    name="get_rule_at_position",
+    description="Get rule name at position. Use for '3rd rule', 'rule number 5'"
+)
+
 ALL_TOOLS = [
+    # Original tools
     list_csv_tool, 
     add_rule_tool,
     validate_tool, 
@@ -485,8 +948,29 @@ ALL_TOOLS = [
     reorder_rule_tool,
     list_firewall_tool,
     show_changes_tool,
-    commit_tool
+    commit_tool,
+    # Smart query tools
+    count_rules_tool,
+    find_keyword_tool,
+    find_ip_tool,
+    find_port_tool,
+    get_allow_rules_tool,
+    get_deny_rules_tool,
+    get_rule_details_tool,
+    summarize_rules_tool,
+    check_exists_tool,
+    # Smart action tools
+    disable_rule_tool,
+    enable_rule_tool,
+    duplicate_rule_tool,
+    get_recent_tool,
+    delete_containing_tool,
+    # Position tools
+    get_last_rule_tool,
+    get_first_rule_tool,
+    get_rule_position_tool
 ]
+
 
 
 
