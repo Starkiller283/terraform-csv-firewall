@@ -31,11 +31,171 @@ FIREWALL_IP = "192.168.0.18"
 API_KEY = "LUFRPT1wOU12bXpFZG9YZ2FBV1VRWFpWRU11OEltYzQ9ZytqWjRUUSt4bnhsbVY2VEtGbTIvSTV0QnVEKzErdGJsV3JscEcxOXk4NUhzRzFTcUZlcHVYTjNHSm5zWnBnMw=="
 
 # Page config
-st.set_page_config(
-    page_title="Firewall Manager",
-    page_icon="🔥",
-    layout="wide"
-)
+def apply_dark_security_theme():
+    """Apply dark cybersecurity theme with custom CSS"""
+    st.markdown("""
+    <style>
+    /* ============= MAIN BACKGROUND ============= */
+    .stApp {
+        background-color: #0d1117;
+        color: #c9d1d9;
+    }
+    
+    /* ============= SIDEBAR ============= */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+        border-right: 1px solid #30363d;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+        color: #c9d1d9;
+    }
+    
+    /* ============= CHAT MESSAGES ============= */
+    .stChatMessage {
+        background-color: #161b22 !important;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    /* User messages - blue accent */
+    [data-testid="stChatMessageContent"]:has(+ [data-testid="stChatMessageAvatar"]) {
+        background: linear-gradient(135deg, #1f2937 0%, #161b22 100%);
+        border-left: 3px solid #58a6ff;
+    }
+    
+    /* ============= INPUT FIELDS ============= */
+    .stTextInput > div > div > input,
+    .stTextArea textarea {
+        background-color: #161b22 !important;
+        color: #c9d1d9 !important;
+        border: 1px solid #30363d !important;
+        border-radius: 6px;
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stTextArea textarea:focus {
+        border-color: #58a6ff !important;
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1) !important;
+    }
+    
+    /* ============= BUTTONS ============= */
+    .stButton > button {
+        background: linear-gradient(135deg, #1f6feb 0%, #1158c7 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #388bfd 0%, #1f6feb 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(31, 111, 235, 0.3);
+    }
+    
+    /* ============= METRICS/STATS ============= */
+    [data-testid="stMetricValue"] {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #58a6ff;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #8b949e;
+    }
+    
+    /* ============= HEADERS ============= */
+    h1, h2, h3 {
+        color: #58a6ff !important;
+        font-weight: 700;
+    }
+    
+    h1 {
+        text-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
+    }
+    
+    /* ============= TEXT ============= */
+    p, span, div {
+        color: #c9d1d9;
+    }
+    
+    /* ============= CODE BLOCKS ============= */
+    code {
+        background-color: #161b22 !important;
+        color: #79c0ff !important;
+        padding: 0.2rem 0.4rem;
+        border-radius: 3px;
+        font-family: 'Fira Code', 'Courier New', monospace;
+    }
+    
+    /* ============= CHAT INPUT ============= */
+    .stChatInputContainer {
+        background-color: #0d1117;
+        border-top: 1px solid #30363d;
+    }
+    
+    .stChatInput > div {
+        background-color: #161b22 !important;
+        border: 1px solid #30363d !important;
+    }
+    
+    /* ============= SCROLLBAR ============= */
+    ::-webkit-scrollbar {
+        width: 10px;
+        background-color: #0d1117;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #30363d 0%, #21262d 100%);
+        border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #484f58 0%, #30363d 100%);
+    }
+    
+    /* ============= DIVIDERS ============= */
+    hr {
+        border-color: #30363d;
+    }
+    
+    /* ============= SUCCESS/ERROR MESSAGES ============= */
+    .stSuccess {
+        background-color: #0d1117 !important;
+        border-left: 4px solid #3fb950 !important;
+        color: #3fb950 !important;
+    }
+    
+    .stError {
+        background-color: #0d1117 !important;
+        border-left: 4px solid #f85149 !important;
+        color: #f85149 !important;
+    }
+    
+    .stWarning {
+        background-color: #0d1117 !important;
+        border-left: 4px solid #d29922 !important;
+        color: #d29922 !important;
+    }
+    
+    .stInfo {
+        background-color: #0d1117 !important;
+        border-left: 4px solid #58a6ff !important;
+        color: #58a6ff !important;
+    }
+    
+    /* ============= SPINNER ============= */
+    .stSpinner > div {
+        border-top-color: #58a6ff !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ============= FUNCTIONS (Same as before) =============
 
