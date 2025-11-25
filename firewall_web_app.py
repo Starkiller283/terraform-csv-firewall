@@ -1369,6 +1369,12 @@ def main():
                 result = list_firewall_rules()
                 st.text_area("Firewall Rules", result, height=400)
         
+        if st.button("📋 View All Rules", use_container_width=True):
+            st.switch_page("pages/1_Manual_Management.py")
+    
+        if st.button("➕ Add New Rule", use_container_width=True):
+            st.switch_page("pages/1_Manual_Management.py")
+
         st.markdown("---")
         
         
