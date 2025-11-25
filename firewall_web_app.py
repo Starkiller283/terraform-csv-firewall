@@ -1371,21 +1371,26 @@ def main():
         
         st.markdown("---")
         
+        
         # Stats
-        st.subheader("📊 Stats")
+        st.subheader("📊 System Status")
         try:
             df = pd.read_csv(CSV_PATH)
-            st.metric("CSV Rules", len(df))
-            st.metric("Allow Rules", len(df[df['action'] == 'allow']))
-            st.metric("Deny Rules", len(df[df['action'] == 'deny']))
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.metric("CSV Rules", len(df))
+                st.markdown("🟢 **Active**")
+            
+            with col2:
+                allow_count = len(df[df['action'] == 'allow'])
+                deny_count = len(df[df['action'] == 'deny'])
+                st.metric("Allow", allow_count)
+                st.metric("Deny", deny_count)
+                
         except:
-            st.warning("No CSV file found")
-        
-        st.markdown("---")
-        
-        if st.button("🗑️ Clear Chat"):
-            st.session_state.messages = []
-            st.rerun()
+            st.warning("⚠️ No CSV file found")
     
     # Main area
     st.markdown("""
