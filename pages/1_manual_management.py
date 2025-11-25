@@ -356,25 +356,30 @@ def main():
                     
                     with col2:
                         new_port = st.text_input("Port", value=current_rule['port'])
-                        protocol_options = ["tcp", "udp", "icmp", "any"]
-                        try:
-                            protocol_index = protocol_options.index(current_rule['protocol'])
-                        except ValueError:
-                            # If protocol not in list (like 'ssl'), default to 'tcp'
+                        
+                        # Handle protocols safely
+                        protocol_options = ["tcp", "udp", "icmp", "any", "ssl", "http", "https"]
+                        current_protocol = str(current_rule['protocol']).lower()
+                        if current_protocol in protocol_options:
+                            protocol_index = protocol_options.index(current_protocol)
+                        else:
                             protocol_index = 0
-                            st.warning(f"⚠️ Current protocol '{current_rule['protocol']}' not in standard list. Defaulting to 'tcp'")
-                        new_protocol = st.selectbox("Protocol", protocol_options, index=protocol_index)`
+                            st.warning(f"⚠️ Protocol '{current_protocol}' not in list, defaulting to 'tcp'")
+                        
+                        new_protocol = st.selectbox("Protocol", protocol_options, index=protocol_index)
+                        
+                        # Handle actions safely
                         action_options = ["allow", "deny"]
-                        try:
-                            action_index = action_options.index(current_rule['action'])
-                        except ValueError:
-                                # If action not in list, default to 'allow'
+                        current_action = str(current_rule['action']).lower()
+                        if current_action in action_options:
+                            action_index = action_options.index(current_action)
+                        else:
                             action_index = 0
-                            st.warning(f"⚠️ Current action '{current_rule['action']}' not in standard list. Defaulting to 'allow'")
-
+                            st.warning(f"⚠️ Action '{current_action}' not in list, defaulting to 'allow'")
+                        
                         new_action = st.selectbox("Action", action_options, index=action_index)
                     
-                        new_desc = st.text_area("Description", value=current_rule['description'])
+                    new_desc = st.text_area("Description", value=current_rule['description'])
                     
                     col_a, col_b = st.columns(2)
                     with col_a:
