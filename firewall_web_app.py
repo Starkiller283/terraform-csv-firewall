@@ -31,6 +31,12 @@ FIREWALL_IP = "192.168.0.18"
 API_KEY = "LUFRPT1wOU12bXpFZG9YZ2FBV1VRWFpWRU11OEltYzQ9ZytqWjRUUSt4bnhsbVY2VEtGbTIvSTV0QnVEKzErdGJsV3JscEcxOXk4NUhzRzFTcUZlcHVYTjNHSm5zWnBnMw=="
 
 # Page config
+st.set_page_config(
+    page_title="Firewall Manager",
+    page_icon="🔥",
+    layout="wide"
+)
+
 def apply_dark_security_theme():
     """Apply dark cybersecurity theme with custom CSS"""
     st.markdown("""
@@ -196,7 +202,6 @@ def apply_dark_security_theme():
     }
     </style>
     """, unsafe_allow_html=True)
-
 # ============= FUNCTIONS (Same as before) =============
 
 def list_csv_rules() -> str:
@@ -1332,6 +1337,7 @@ Remember: Have a conversation, not just execute commands!"""
 # ============= STREAMLIT UI =============
 
 def main():
+    apply_dark_security_theme()
     # Initialize session state
     if 'messages' not in st.session_state:
         st.session_state.messages = []
@@ -1382,7 +1388,15 @@ def main():
             st.rerun()
     
     # Main area
-    st.title("💬 Chat with Firewall Manager")
+    st.markdown("""
+        <div style='text-align: center; padding: 1rem 0;'>
+            <h1 style='color: #58a6ff; margin: 0;'>🔥 Firewall Manager</h1>
+            <p style='color: #8b949e; margin: 0.5rem 0;'>Intelligent Security Operations Assistant</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("### 💬 Command Center")
     st.markdown("Ask me anything about your firewall rules!")
     
     # Display chat messages
