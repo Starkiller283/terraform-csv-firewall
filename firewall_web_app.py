@@ -1395,8 +1395,8 @@ def main():
     # Main area
     st.markdown("""
         <div style='text-align: center; padding: 1rem 0;'>
-            <h1 style='color: #58a6ff; margin: 0;'>🔥 Firewall Manager</h1>
-            <p style='color: #8b949e; margin: 0.5rem 0;'>Intelligent Security Operations Assistant</p>
+            <h1 style='color: #58a6ff; margin: 0;'>💬 Firewall Chat Assistant</h1>
+            <p style='color: #8b949e; margin: 0.5rem 0;'>Conversational Interface for Security Operations</p>
         </div>
     """, unsafe_allow_html=True)
 
